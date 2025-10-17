@@ -75,14 +75,15 @@
     const game = new Phaser.Game(config);
 
     function preload() {
-        // 创建简单的图形资源（避免外部文件）
-        this.createPlayerTexture();
-        this.createEnemyTexture();
-        this.createBulletTexture();
-        this.createStarTexture();
+        // 这里什么都不加载，因为我们要动态创建纹理
     }
 
     function create() {
+        // 先创建纹理资源
+        createPlayerTexture.call(this);
+        createEnemyTexture.call(this);
+        createBulletTexture.call(this);
+
         // 创建玩家飞船
         player = this.physics.add.sprite(400, 500, 'player');
         player.setCollideWorldBounds(true);
@@ -326,10 +327,6 @@
         graphics.fillRect(0, 0, 3, 10);
         graphics.generateTexture('bullet', 3, 10);
         graphics.destroy();
-    }
-
-    function createStarTexture() {
-        // 星星已经在 createStars 中直接绘制
     }
 </script>
 </body>

@@ -54,7 +54,7 @@
                 default: 'arcade',
                 arcade: {
                     gravity: { y: 0 },
-                    debug: true
+                    debug: false
                 }
             },
             scene: {
@@ -137,7 +137,7 @@
 
             // 调整每个敌人的碰撞体
             enemies.children.iterate((enemy) => {
-                enemy.body.setSize(44, 33);
+                enemy.body.setSize(44, 30);
             });
 
             // 设置碰撞检测

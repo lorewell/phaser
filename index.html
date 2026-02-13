@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <script src="./phaser.min.js"></script>
     <style>
         body { margin: 0; padding: 0; overflow: hidden; background: #000; }
         canvas { touch-action: none; }
@@ -13,30 +13,17 @@
 
 <script>
 // ==========================================
-// 【全局配置与变量】
+// 【全局配置】
 // ==========================================
 const config = {
     type: Phaser.AUTO,
-    scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: 480,
-        height: 800
-    },
-    physics: {
-        default: 'arcade',
-        arcade: { gravity: { y: 0 }, debug: false }
-    },
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 480, height: 800 },
+    physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
     scene: { preload, create, update }
 };
 
-let player = {
-    hp: 2,           // 当前血量
-    maxHp: 5,        // 最大血量上限
-    unitWidth: 60    // 每 1 HP 对应的固定像素宽度 (关键变量)
-};
-
-let ball, paddle, bricks;
+let player = { hp: 2, maxHp: 5, unitWidth: 60 };
+let ball, paddle, bricks, enemyBullets;
 let isLeftDown = false, isRightDown = false, ballLaunched = false;
 const game = new Phaser.Game(config);
 
@@ -45,129 +32,211 @@ function preload() {
 }
 
 function create() {
-    // 允许球从底部掉落
     this.physics.world.setBoundsCollision(true, true, true, false);
 
-    // 分类初始化
     initPaddle(this);
-    initBricks(this);
+    initBricks(this); // 初始化包含多种砖块
     initBall(this);
-    createMobileControls(this);
+    enemyBullets = this.physics.add.group(); // 初始化子弹组
+    
+    // 检测是否支持触摸（手机/平板）
+    if (this.sys.game.device.input.touch) {
+        // 移动端：显示 UI 按钮
+        createMobileControls(this);
+    } else {
+        // PC 端：初始化键盘监听，且不显示屏幕按钮
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.keys = this.input.keyboard.addKeys('A,D,SPACE');
+    }
 
     // 碰撞监听
     this.physics.add.collider(ball, paddle, handlePaddleHit, null, this);
     this.physics.add.collider(ball, bricks, handleBrickHit, null, this);
+    
+    // 子弹与挡板碰撞
+    this.physics.add.overlap(paddle, enemyBullets, (p, bullet) => {
+        bullet.destroy();
+        damagePlayer(this);
+    }, null, this);
 }
 
 // ==========================================
-// 【挡板 (Paddle) 方法函数】
+// 【挡板 (Paddle) 逻辑】
 // ==========================================
 
 function initPaddle(scene) {
-    // 创建挡板，初始宽度根据当前血量设定
-    const initialWidth = player.hp * player.unitWidth;
-    paddle = scene.add.rectangle(240, 650, initialWidth, 20, 0xffffff);
-    
+    paddle = scene.add.rectangle(240, 650, player.hp * player.unitWidth, 20, 0xffffff);
     scene.physics.add.existing(paddle);
     paddle.body.setImmovable(true);
     paddle.body.setCollideWorldBounds(true);
-    
     updatePaddleVisual();
 }
 
-/**
- * 核心：直接基于 HP 数量计算固定长度
- */
 function updatePaddleVisual() {
-    // 计算新长度：血量 * 固定单位宽度
     const newWidth = player.hp * player.unitWidth;
-    
-    // 直接修改物理体的大小
     paddle.width = newWidth;
     paddle.body.setSize(newWidth, 20);
-    
-    // 视觉反馈
-    if (player.hp <= 1) {
-        paddle.setFillStyle(0xff4444); // 仅剩1血时显示红色
-    } else {
-        paddle.setFillStyle(0xffffff);
-    }
+    paddle.setFillStyle(player.hp <= 1 ? 0xff4444 : 0xffffff);
 }
 
 function damagePlayer(scene) {
     player.hp--;
-    
     if (player.hp <= 0) {
         scene.physics.pause();
-        alert("挡板已彻底碎裂！游戏结束。");
+        alert("游戏结束！");
         location.reload();
     } else {
         scene.cameras.main.shake(200, 0.02);
         updatePaddleVisual();
-        resetBall();
+        // 如果是子弹击中，不需要重置球；如果是球掉落，则重置球
     }
 }
 
 // ==========================================
-// 【砖块 (Brick) 方法函数】
+// 【砖块 (Brick) 逻辑】
 // ==========================================
 
 function initBricks(scene) {
     bricks = scene.physics.add.staticGroup();
-    const colors = [0xe74c3c, 0xe67e22, 0xf1c40f, 0x2ecc71, 0x3498db];
+    
+    // 简单的关卡布局：每行一种类型
+    const types = ['normal', 'armored', 'explosive', 'ghost', 'normal'];
     
     for (let row = 0; row < 5; row++) {
         for (let col = 0; col < 6; col++) {
-            createSingleBrick(scene, 65 + (col * 70), 100 + (row * 35), colors[row]);
+            createBrickByType(scene, 65 + (col * 70), 100 + (row * 40), types[row]);
         }
     }
 }
 
-function createSingleBrick(scene, x, y, color) {
-    let brick = scene.add.rectangle(x, y, 60, 25, color);
+function createBrickByType(scene, x, y, type) {
+    let brick = scene.add.rectangle(x, y, 60, 25, 0x999999);
     scene.physics.add.existing(brick, true);
+    brick.setData('type', type);
+
+    if (type === 'normal') {
+        brick.setData('hp', 1);
+        brick.setFillStyle(0x888888);
+    } 
+    else if (type === 'armored') {
+        brick.setData('hp', 3);
+        brick.setStrokeStyle(2, 0xffffff); // 银色填充+白色边框
+        brick.setFillStyle(0xaaaaaa);
+    } 
+    else if (type === 'explosive') {
+        brick.setData('hp', 1);
+        brick.setFillStyle(0xff0000); // 红色
+    } 
+    else if (type === 'ghost') {
+        brick.setData('hp', 1);
+        brick.setData('isGhost', false);
+        brick.setStrokeStyle(2, 0xffffff, 1); // 虚线效果用边框模拟
+        
+        // 相位切换定时器
+        scene.time.addEvent({
+            delay: 3000,
+            callback: () => toggleGhost(brick),
+            loop: true
+        });
+    }
+    
     bricks.add(brick);
 }
 
-function handleBrickHit(ball, brick) {
-    brick.destroy();
-    if (bricks.countActive() === 0) {
-        alert("恭喜过关！");
-        location.reload();
+function toggleGhost(brick) {
+    if (!brick.active) return;
+    let isGhost = !brick.getData('isGhost');
+    brick.setData('isGhost', isGhost);
+    
+    if (isGhost) {
+        brick.setFillStyle(0x888888, 0); // 虚幻：只有框
+        brick.body.enable = false;      // 物理失效，球穿过去
+    } else {
+        brick.setFillStyle(0x888888, 1); // 实体：灰填充
+        brick.body.enable = true;
     }
 }
 
+function handleBrickHit(ball, brick) {
+    const type = brick.getData('type');
+    let hp = brick.getData('hp') - 1;
+    brick.setData('hp', hp);
+
+    if (hp > 0) {
+        // 装甲砖块受击逻辑
+        if (type === 'armored') {
+            if (hp === 2) brick.setStrokeStyle(0); // 失去边框
+            if (hp === 1) brick.setFillStyle(0x888888); // 变为灰色
+        }
+    } else {
+        // 彻底摧毁逻辑
+        if (type === 'explosive') {
+            spawnBullet(this, brick.x, brick.y);
+        }
+        brick.destroy();
+    }
+
+    if (bricks.countActive() === 0) location.reload();
+}
+
+function spawnBullet(scene, x, y) {
+    let bullet = scene.add.rectangle(x, y, 10, 20, 0xff0000);
+    scene.physics.add.existing(bullet);
+    enemyBullets.add(bullet);
+    bullet.body.setVelocityY(300); // 向正下方发射
+}
+
 // ==========================================
-// 【核心系统与控制】
+// 【系统逻辑】
 // ==========================================
 
 function initBall(scene) {
     ball = scene.add.circle(240, 620, 10, 0xffffff);
     scene.physics.add.existing(ball);
-    ball.body.setCollideWorldBounds(true);
-    ball.body.setBounce(1, 1);
+    ball.body.setCollideWorldBounds(true).setBounce(1, 1);
 }
 
 function handlePaddleHit(ball, paddle) {
-    // 根据撞击点距离挡板中心的距离来改变球的反弹角度
-    let diff = ball.x - paddle.x;
-    ball.body.setVelocityX(10 * diff);
+    ball.body.setVelocityX(10 * (ball.x - paddle.x));
 }
 
 function update() {
-    const paddleSpeed = 500;
-    if (isLeftDown) {
-        paddle.body.setVelocityX(-paddleSpeed);
-        launchBall();
-    } else if (isRightDown) {
-        paddle.body.setVelocityX(paddleSpeed);
-        launchBall();
+const paddleSpeed = 500;
+    let moveDirection = 0; // -1: 左, 1: 右, 0: 静止
+
+    // 响应式判断：优先检测触摸状态，其次检测键盘
+    if (this.sys.game.device.input.touch) {
+        if (isLeftDown) moveDirection = -1;
+        else if (isRightDown) moveDirection = 1;
     } else {
-        paddle.body.setVelocityX(0);
+        if (this.cursors.left.isDown || this.keys.A.isDown) moveDirection = -1;
+        else if (this.cursors.right.isDown || this.keys.D.isDown) moveDirection = 1;
+        
+        // PC 端特有的空格键发射
+        if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) launchBall();
     }
 
-    if (ball.y > 800) {
-        damagePlayer(this);
+    // 执行移动
+    paddle.body.setVelocityX(moveDirection * paddleSpeed);
+
+    // 只要有移动意图，且球未发射，则发射球
+    if (moveDirection !== 0 && !ballLaunched) launchBall();
+    
+    // 清理越界的子弹，并判断是否需要重置挡板和生成新子弹
+    let bulletCount = 0;
+    enemyBullets.children.iterate(child => {
+        if (child && child.y > 800) {
+            child.destroy();
+        } else if (child) {
+            bulletCount++;
+        }
+    });
+    // 如果没有子弹了，重置挡板位置并生成新子弹
+    if (bulletCount === 0) {
+        // 重置挡板位置
+        paddle.setPosition(240, 650);
+        // 生成新子弹（假设从挡板中心发射）
+        spawnBullet(this, paddle.x, paddle.y - 30);
     }
 }
 
@@ -186,13 +255,10 @@ function resetBall() {
 
 function createMobileControls(scene) {
     const btnY = 740;
-    // 左按钮
-    scene.add.rectangle(120, btnY, 200, 80, 0x555555, 0.5)
-        .setInteractive().on('pointerdown', () => isLeftDown = true).on('pointerup', () => isLeftDown = false);
-    // 右按钮
-    scene.add.rectangle(360, btnY, 200, 80, 0x555555, 0.5)
-        .setInteractive().on('pointerdown', () => isRightDown = true).on('pointerup', () => isRightDown = false);
-    
+    scene.add.rectangle(120, btnY, 200, 80, 0x555555, 0.5).setInteractive()
+        .on('pointerdown', () => isLeftDown = true).on('pointerup', () => isLeftDown = false);
+    scene.add.rectangle(360, btnY, 200, 80, 0x555555, 0.5).setInteractive()
+        .on('pointerdown', () => isRightDown = true).on('pointerup', () => isRightDown = false);
     scene.add.text(120, btnY, "<<<", {fontSize: '32px'}).setOrigin(0.5);
     scene.add.text(360, btnY, ">>>", {fontSize: '32px'}).setOrigin(0.5);
 }

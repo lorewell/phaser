@@ -1,135 +1,200 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; }
+        canvas { touch-action: none; }
+    </style>
 </head>
-<body style="margin: 0; background: #222; display: flex; justify-content: center; align-items: center; height: 100vh;">
+<body>
 
 <script>
+// ==========================================
+// 【全局配置与变量】
+// ==========================================
 const config = {
     type: Phaser.AUTO,
-    width: 480,
-    height: 640,
-    backgroundColor: '#2d2d2d',
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 480,
+        height: 800
+    },
     physics: {
         default: 'arcade',
-        arcade: {
-            gravity: { y: 0 }, // 打砖块不需要全局重力
-            debug: false
-        }
+        arcade: { gravity: { y: 0 }, debug: false }
     },
-    scene: {
-        preload: preload,
-        create: create,
-        update: update
-    }
+    scene: { preload, create, update }
 };
 
+let player = {
+    hp: 2,           // 当前血量
+    maxHp: 5,        // 最大血量上限
+    unitWidth: 60    // 每 1 HP 对应的固定像素宽度 (关键变量)
+};
+
+let ball, paddle, bricks;
+let isLeftDown = false, isRightDown = false, ballLaunched = false;
 const game = new Phaser.Game(config);
 
-let ball, paddle, bricks, cursors;
-let ballLaunched = false;
-
 function preload() {
-    // 使用占位图生成简单几何图形，不需要外部图片资源
     this.load.image('ball', 'https://labs.phaser.io/assets/sprites/shinyball.png');
-    this.load.image('paddle', 'https://labs.phaser.io/assets/sprites/palm-tree-left.png'); // 临时用图
 }
 
 function create() {
-    // 1. 世界边界设置：让底部可以穿透（为了判定死亡）
+    // 允许球从底部掉落
     this.physics.world.setBoundsCollision(true, true, true, false);
 
-    // 2. 创建砖块 (使用简单的矩形绘制)
-    bricks = this.physics.add.staticGroup();
-    const colors = [0xff0000, 0xff7f00, 0xffff00, 0x00ff00, 0x0000ff];
-    
-    for (let row = 0; row < 5; row++) {
-        for (let col = 0; col < 6; col++) {
-            // 创建一个小方块
-            let x = 65 + (col * 70);
-            let y = 80 + (row * 35);
-            let brick = this.add.rectangle(x, y, 60, 25, colors[row]);
-            this.physics.add.existing(brick, true); // true 代表静态物体
-            bricks.add(brick);
-        }
-    }
+    // 分类初始化
+    initPaddle(this);
+    initBricks(this);
+    initBall(this);
+    createMobileControls(this);
 
-    // 3. 创建挡板
-    paddle = this.add.rectangle(240, 600, 100, 20, 0xffffff);
-    this.physics.add.existing(paddle);
-    paddle.body.setImmovable(true);
-    paddle.body.setCollideWorldBounds(true);
-
-    // 4. 创建球
-    ball = this.add.circle(240, 570, 10, 0xffffff);
-    this.physics.add.existing(ball);
-    ball.body.setCollideWorldBounds(true);
-    ball.body.setBounce(1, 1); // 完美反弹
-
-    // 5. 输入系统
-    cursors = this.input.keyboard.createCursorKeys();
-    this.keys = this.input.keyboard.addKeys('A,D');
-
-    // 6. 碰撞检测
-    this.physics.add.collider(ball, paddle, hitPaddle, null, this);
-    this.physics.add.collider(ball, bricks, hitBrick, null, this);
+    // 碰撞监听
+    this.physics.add.collider(ball, paddle, handlePaddleHit, null, this);
+    this.physics.add.collider(ball, bricks, handleBrickHit, null, this);
 }
 
-function update() {
-    // 挡板移动逻辑
-    const paddleSpeed = 600;
-    if (cursors.left.isDown || this.keys.A.isDown) {
-        paddle.body.setVelocityX(-paddleSpeed);
-    } else if (cursors.right.isDown || this.keys.D.isDown) {
-        paddle.body.setVelocityX(paddleSpeed);
+// ==========================================
+// 【挡板 (Paddle) 方法函数】
+// ==========================================
+
+function initPaddle(scene) {
+    // 创建挡板，初始宽度根据当前血量设定
+    const initialWidth = player.hp * player.unitWidth;
+    paddle = scene.add.rectangle(240, 650, initialWidth, 20, 0xffffff);
+    
+    scene.physics.add.existing(paddle);
+    paddle.body.setImmovable(true);
+    paddle.body.setCollideWorldBounds(true);
+    
+    updatePaddleVisual();
+}
+
+/**
+ * 核心：直接基于 HP 数量计算固定长度
+ */
+function updatePaddleVisual() {
+    // 计算新长度：血量 * 固定单位宽度
+    const newWidth = player.hp * player.unitWidth;
+    
+    // 直接修改物理体的大小
+    paddle.width = newWidth;
+    paddle.body.setSize(newWidth, 20);
+    
+    // 视觉反馈
+    if (player.hp <= 1) {
+        paddle.setFillStyle(0xff4444); // 仅剩1血时显示红色
     } else {
-        paddle.body.setVelocityX(0);
+        paddle.setFillStyle(0xffffff);
     }
+}
 
-    // 初始化发射球（按空格或第一次移动）
-    if (!ballLaunched && (cursors.space.isDown || cursors.left.isDown || cursors.right.isDown)) {
-        ballLaunched = true;
-        ball.body.setVelocity(-200, -300);
-    }
-
-    // 掉落判定：如果球坐标超过屏幕高度，重置
-    if (ball.y > 640) {
+function damagePlayer(scene) {
+    player.hp--;
+    
+    if (player.hp <= 0) {
+        scene.physics.pause();
+        alert("挡板已彻底碎裂！游戏结束。");
+        location.reload();
+    } else {
+        scene.cameras.main.shake(200, 0.02);
+        updatePaddleVisual();
         resetBall();
     }
 }
 
-function hitBrick(ball, brick) {
-    brick.destroy(); // 砖块消失
+// ==========================================
+// 【砖块 (Brick) 方法函数】
+// ==========================================
+
+function initBricks(scene) {
+    bricks = scene.physics.add.staticGroup();
+    const colors = [0xe74c3c, 0xe67e22, 0xf1c40f, 0x2ecc71, 0x3498db];
     
-    // 如果砖块全没了，重置游戏
-    if (bricks.countActive() === 0) {
-        resetLevel();
+    for (let row = 0; row < 5; row++) {
+        for (let col = 0; col < 6; col++) {
+            createSingleBrick(scene, 65 + (col * 70), 100 + (row * 35), colors[row]);
+        }
     }
 }
 
-function hitPaddle(ball, paddle) {
-    // 加一点手感：球撞击挡板位置不同，反弹角度不同
-    let diff = 0;
-    if (ball.x < paddle.x) {
-        diff = paddle.x - ball.x;
-        ball.body.setVelocityX(-10 * diff);
-    } else if (ball.x > paddle.x) {
-        diff = ball.x - paddle.x;
-        ball.body.setVelocityX(10 * diff);
+function createSingleBrick(scene, x, y, color) {
+    let brick = scene.add.rectangle(x, y, 60, 25, color);
+    scene.physics.add.existing(brick, true);
+    bricks.add(brick);
+}
+
+function handleBrickHit(ball, brick) {
+    brick.destroy();
+    if (bricks.countActive() === 0) {
+        alert("恭喜过关！");
+        location.reload();
+    }
+}
+
+// ==========================================
+// 【核心系统与控制】
+// ==========================================
+
+function initBall(scene) {
+    ball = scene.add.circle(240, 620, 10, 0xffffff);
+    scene.physics.add.existing(ball);
+    ball.body.setCollideWorldBounds(true);
+    ball.body.setBounce(1, 1);
+}
+
+function handlePaddleHit(ball, paddle) {
+    // 根据撞击点距离挡板中心的距离来改变球的反弹角度
+    let diff = ball.x - paddle.x;
+    ball.body.setVelocityX(10 * diff);
+}
+
+function update() {
+    const paddleSpeed = 500;
+    if (isLeftDown) {
+        paddle.body.setVelocityX(-paddleSpeed);
+        launchBall();
+    } else if (isRightDown) {
+        paddle.body.setVelocityX(paddleSpeed);
+        launchBall();
     } else {
-        ball.body.setVelocityX(2 + Math.random() * 8);
+        paddle.body.setVelocityX(0);
+    }
+
+    if (ball.y > 800) {
+        damagePlayer(this);
+    }
+}
+
+function launchBall() {
+    if (!ballLaunched) {
+        ballLaunched = true;
+        ball.body.setVelocity(-200, -400);
     }
 }
 
 function resetBall() {
     ballLaunched = false;
-    ball.setPosition(240, 570);
+    ball.setPosition(paddle.x, 620);
     ball.body.setVelocity(0, 0);
 }
 
-function resetLevel() {
-    location.reload(); // 简单粗暴重载页面
+function createMobileControls(scene) {
+    const btnY = 740;
+    // 左按钮
+    scene.add.rectangle(120, btnY, 200, 80, 0x555555, 0.5)
+        .setInteractive().on('pointerdown', () => isLeftDown = true).on('pointerup', () => isLeftDown = false);
+    // 右按钮
+    scene.add.rectangle(360, btnY, 200, 80, 0x555555, 0.5)
+        .setInteractive().on('pointerdown', () => isRightDown = true).on('pointerup', () => isRightDown = false);
+    
+    scene.add.text(120, btnY, "<<<", {fontSize: '32px'}).setOrigin(0.5);
+    scene.add.text(360, btnY, ">>>", {fontSize: '32px'}).setOrigin(0.5);
 }
 </script>
 </body>

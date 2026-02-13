@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+</head>
+<body style="margin: 0; background: #222; display: flex; justify-content: center; align-items: center; height: 100vh;">
+
+<script>
+const config = {
+    type: Phaser.AUTO,
+    width: 480,
+    height: 640,
+    backgroundColor: '#2d2d2d',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 }, // 打砖块不需要全局重力
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+const game = new Phaser.Game(config);
+
+let ball, paddle, bricks, cursors;
+let ballLaunched = false;
+
+function preload() {
+    // 使用占位图生成简单几何图形，不需要外部图片资源
+    this.load.image('ball', 'https://labs.phaser.io/assets/sprites/shinyball.png');
+    this.load.image('paddle', 'https://labs.phaser.io/assets/sprites/palm-tree-left.png'); // 临时用图
+}
+
+function create() {
+    // 1. 世界边界设置：让底部可以穿透（为了判定死亡）
+    this.physics.world.setBoundsCollision(true, true, true, false);
+
+    // 2. 创建砖块 (使用简单的矩形绘制)
+    bricks = this.physics.add.staticGroup();
+    const colors = [0xff0000, 0xff7f00, 0xffff00, 0x00ff00, 0x0000ff];
+    
+    for (let row = 0; row < 5; row++) {
+        for (let col = 0; col < 6; col++) {
+            // 创建一个小方块
+            let x = 65 + (col * 70);
+            let y = 80 + (row * 35);
+            let brick = this.add.rectangle(x, y, 60, 25, colors[row]);
+            this.physics.add.existing(brick, true); // true 代表静态物体
+            bricks.add(brick);
+        }
+    }
+
+    // 3. 创建挡板
+    paddle = this.add.rectangle(240, 600, 100, 20, 0xffffff);
+    this.physics.add.existing(paddle);
+    paddle.body.setImmovable(true);
+    paddle.body.setCollideWorldBounds(true);
+
+    // 4. 创建球
+    ball = this.add.circle(240, 570, 10, 0xffffff);
+    this.physics.add.existing(ball);
+    ball.body.setCollideWorldBounds(true);
+    ball.body.setBounce(1, 1); // 完美反弹
+
+    // 5. 输入系统
+    cursors = this.input.keyboard.createCursorKeys();
+    this.keys = this.input.keyboard.addKeys('A,D');
+
+    // 6. 碰撞检测
+    this.physics.add.collider(ball, paddle, hitPaddle, null, this);
+    this.physics.add.collider(ball, bricks, hitBrick, null, this);
+}
+
+function update() {
+    // 挡板移动逻辑
+    const paddleSpeed = 600;
+    if (cursors.left.isDown || this.keys.A.isDown) {
+        paddle.body.setVelocityX(-paddleSpeed);
+    } else if (cursors.right.isDown || this.keys.D.isDown) {
+        paddle.body.setVelocityX(paddleSpeed);
+    } else {
+        paddle.body.setVelocityX(0);
+    }
+
+    // 初始化发射球（按空格或第一次移动）
+    if (!ballLaunched && (cursors.space.isDown || cursors.left.isDown || cursors.right.isDown)) {
+        ballLaunched = true;
+        ball.body.setVelocity(-200, -300);
+    }
+
+    // 掉落判定：如果球坐标超过屏幕高度，重置
+    if (ball.y > 640) {
+        resetBall();
+    }
+}
+
+function hitBrick(ball, brick) {
+    brick.destroy(); // 砖块消失
+    
+    // 如果砖块全没了，重置游戏
+    if (bricks.countActive() === 0) {
+        resetLevel();
+    }
+}
+
+function hitPaddle(ball, paddle) {
+    // 加一点手感：球撞击挡板位置不同，反弹角度不同
+    let diff = 0;
+    if (ball.x < paddle.x) {
+        diff = paddle.x - ball.x;
+        ball.body.setVelocityX(-10 * diff);
+    } else if (ball.x > paddle.x) {
+        diff = ball.x - paddle.x;
+        ball.body.setVelocityX(10 * diff);
+    } else {
+        ball.body.setVelocityX(2 + Math.random() * 8);
+    }
+}
+
+function resetBall() {
+    ballLaunched = false;
+    ball.setPosition(240, 570);
+    ball.body.setVelocity(0, 0);
+}
+
+function resetLevel() {
+    location.reload(); // 简单粗暴重载页面
+}
+</script>
+</body>
+</html>

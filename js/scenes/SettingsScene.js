@@ -13,20 +13,35 @@ export default class SettingsScene extends Phaser.Scene {
         const W = this.scale.width;
         const H = this.scale.height;
 
-        // 背景
-        this.add.rectangle(W / 2, H / 2, W, H, 0x08081a);
+        // 像素风背景
+        this.add.rectangle(W / 2, H / 2, W, H, 0x000000);
+        const gridG = this.add.graphics();
+        gridG.lineStyle(1, 0x0a0a22, 0.6);
+        for (let gx = 0; gx <= W; gx += 16) gridG.lineBetween(gx, 0, gx, H);
+        for (let gy = 0; gy <= H; gy += 16) gridG.lineBetween(0, gy, W, gy);
+        // CRT 扫描线
+        const scanG = this.add.graphics();
+        for (let sy = 0; sy < H; sy += 4) {
+            scanG.fillStyle(0x000000, 0.12);
+            scanG.fillRect(0, sy, W, 2);
+        }
 
         // 标题
         this.add.text(W / 2, 55, '设  置', {
-            fontSize: '38px',
-            color: '#ddeeff',
+            fontSize: '36px',
+            color: '#ffee00',
             fontStyle: 'bold',
+            stroke: '#ff6600',
+            strokeThickness: 3,
+            shadow: { x: 3, y: 3, color: '#330000', blur: 0, fill: true },
         }).setOrigin(0.5);
 
-        // 分隔线
+        // 像素分隔线
         const g = this.add.graphics();
-        g.lineStyle(1, 0x223366, 0.9);
-        g.lineBetween(50, 92, W - 50, 92);
+        g.fillStyle(0xffee00, 1);
+        g.fillRect(50, 92, W - 100, 2);
+        g.fillStyle(0x00ffcc, 0.5);
+        g.fillRect(50, 95, W - 100, 1);
 
         // 设置项定义
         const items = [
@@ -65,13 +80,13 @@ export default class SettingsScene extends Phaser.Scene {
         });
 
         // 底部按钮行
-        this.createSmallButton(W / 2 - 85, H - 95, '重置默认', 0x2a1515, 0x552222, () => {
+        this.createSmallButton(W / 2 - 85, H - 95, '重置默认', 0x110000, 0x220000, () => {
             Object.assign(this.settings, DEFAULTS);
             saveSettings(this.settings);
             this.scene.restart();
         });
 
-        this.createSmallButton(W / 2 + 85, H - 95, '返回菜单', 0x151528, 0x223366, () => {
+        this.createSmallButton(W / 2 + 85, H - 95, '返回菜单', 0x000011, 0x000022, () => {
             saveSettings(this.settings);
             this.scene.start('MenuScene');
         });
@@ -87,14 +102,14 @@ export default class SettingsScene extends Phaser.Scene {
         // 行标签
         this.add.text(50, rowY, item.label, {
             fontSize: '21px',
-            color: '#99bbdd',
+            color: '#ffee00',
             fontStyle: 'bold',
         });
 
         // 说明文字
         this.add.text(50, rowY + 28, item.hint, {
             fontSize: '13px',
-            color: '#445566',
+            color: '#336644',
         });
 
         // 选项按钮组
@@ -107,21 +122,23 @@ export default class SettingsScene extends Phaser.Scene {
             const isActive = this.settings[item.key] === opt;
 
             const btn = this.add.rectangle(bx, by, optW, 38,
-                isActive ? 0x1e4488 : 0x111122)
-                .setStrokeStyle(1, isActive ? 0x4499ff : 0x2a3355)
+                isActive ? 0x003300 : 0x000000)
+                .setStrokeStyle(2, isActive ? 0x00ffcc : 0x224433)
                 .setInteractive({ useHandCursor: true });
 
             const txt = this.add.text(bx, by, item.display[opt], {
                 fontSize: '16px',
-                color: isActive ? '#ffffff' : '#556677',
+                color: isActive ? '#00ffcc' : '#335544',
                 fontStyle: isActive ? 'bold' : 'normal',
             }).setOrigin(0.5);
 
             btn.on('pointerover', () => {
-                if (!isActive) btn.setFillStyle(0x1a2840);
+                if (!isActive) btn.setFillStyle(0x001100);
+                if (!isActive) btn.setStrokeStyle(2, 0x00aa88);
             });
             btn.on('pointerout', () => {
-                if (!isActive) btn.setFillStyle(0x111122);
+                if (!isActive) btn.setFillStyle(0x000000);
+                if (!isActive) btn.setStrokeStyle(2, 0x224433);
             });
             btn.on('pointerdown', () => {
                 this.settings[item.key] = opt;
@@ -132,17 +149,19 @@ export default class SettingsScene extends Phaser.Scene {
     }
 
     createSmallButton(x, y, label, colorNormal, colorHover, onClick) {
+        this.add.rectangle(x + 4, y + 4, 148, 50, 0x000000, 1);
         const bg = this.add.rectangle(x, y, 148, 50, colorNormal)
-            .setStrokeStyle(1, 0x334466, 0.8)
+            .setStrokeStyle(2, 0x00ffcc, 1)
             .setInteractive({ useHandCursor: true });
 
         const txt = this.add.text(x, y, label, {
-            fontSize: '18px',
-            color: '#aaccee',
+            fontSize: '17px',
+            color: '#00ffcc',
+            fontStyle: 'bold',
         }).setOrigin(0.5);
 
-        bg.on('pointerover', () => { bg.setFillStyle(colorHover); txt.setColor('#ffffff'); });
-        bg.on('pointerout', () => { bg.setFillStyle(colorNormal); txt.setColor('#aaccee'); });
-        bg.on('pointerdown', () => { bg.setFillStyle(0x080810); onClick(); });
+        bg.on('pointerover', () => { bg.setFillStyle(colorHover); bg.setStrokeStyle(2, 0xffee00); txt.setColor('#ffee00'); });
+        bg.on('pointerout',  () => { bg.setFillStyle(colorNormal); bg.setStrokeStyle(2, 0x00ffcc); txt.setColor('#00ffcc'); });
+        bg.on('pointerdown', () => { bg.setFillStyle(0x00ffcc); txt.setColor('#000000'); onClick(); });
     }
 }

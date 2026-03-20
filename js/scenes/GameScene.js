@@ -24,12 +24,13 @@ export default class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('ball', 'https://labs.phaser.io/assets/sprites/shinyball.png');
+        // 像素风格使用几何图形，无需加载外部图片资源
     }
 
     create() {
         this.physics.world.setBoundsCollision(true, true, true, false);
 
+        this.addBackground();
         this.initPaddle();
         this.initBricks();
         this.initBall();
@@ -60,15 +61,38 @@ export default class GameScene extends Phaser.Scene {
         // ESC 返回菜单
         this.input.keyboard.on('keydown-ESC', () => this.scene.start('MenuScene'));
 
-        this.add.text(8, 8, 'ESC 返回', { fontSize: '13px', color: '#333355' });
+        this.add.text(8, 8, 'ESC 返回', { fontSize: '12px', color: '#00ffcc' });
+        this.addScanlines();
     }
 
+    // ==========================================    // 》像素风背景与特效《
     // ==========================================
-    // 【挡板 (Paddle) 逻辑】
+
+    addBackground() {
+        const W = this.scale.width;
+        const H = this.scale.height;
+        this.add.rectangle(W / 2, H / 2, W, H, 0x000000);
+        const g = this.add.graphics();
+        g.lineStyle(1, 0x0a0a22, 0.5);
+        for (let x = 0; x <= W; x += 16) g.lineBetween(x, 0, x, H * 0.68);
+        for (let y = 0; y <= H * 0.68; y += 16) g.lineBetween(0, y, W, y);
+    }
+
+    addScanlines() {
+        const W = this.scale.width;
+        const H = this.scale.height;
+        const g = this.add.graphics();
+        for (let y = 0; y < H; y += 4) {
+            g.fillStyle(0x000000, 0.12);
+            g.fillRect(0, y, W, 2);
+        }
+    }
+
+    // ==========================================    // 【挡板 (Paddle) 逻辑】
     // ==========================================
 
     initPaddle() {
-        this.paddle = this.add.rectangle(240, 650, this.player.hp * this.player.unitWidth, 20, 0xffffff);
+        this.paddle = this.add.rectangle(240, 650, this.player.hp * this.player.unitWidth, 20, 0x00ddcc);
         this.physics.add.existing(this.paddle);
         this.paddle.body.setImmovable(true);
         this.paddle.body.setCollideWorldBounds(true);
@@ -79,7 +103,7 @@ export default class GameScene extends Phaser.Scene {
         const newWidth = this.player.hp * this.player.unitWidth;
         this.paddle.width = newWidth;
         this.paddle.body.setSize(newWidth, 20);
-        this.paddle.setFillStyle(this.player.hp <= 1 ? 0xff4444 : 0xffffff);
+        this.paddle.setFillStyle(this.player.hp <= 1 ? 0xff2244 : 0x00ddcc);
     }
 
     damagePlayer() {
@@ -95,12 +119,16 @@ export default class GameScene extends Phaser.Scene {
 
     showGameOver() {
         const W = this.scale.width;
-        this.add.rectangle(W / 2, 400, 320, 130, 0x000000, 0.82);
-        this.add.text(W / 2, 380, '游 戏 结 束', {
-            fontSize: '34px', color: '#ff4444', fontStyle: 'bold',
+        // 像素风 Game Over 面板
+        this.add.rectangle(W / 2 + 5, 405, 320, 140, 0x000000, 1);
+        this.add.rectangle(W / 2, 400, 320, 140, 0x000000, 1)
+            .setStrokeStyle(3, 0xff2244, 1);
+        this.add.text(W / 2, 378, '游 戏 结 束', {
+            fontSize: '34px', color: '#ff2244', fontStyle: 'bold',
+            shadow: { x: 3, y: 3, color: '#660000', blur: 0, fill: true },
         }).setOrigin(0.5);
         this.add.text(W / 2, 425, '点击或按任意键返回菜单', {
-            fontSize: '16px', color: '#778899',
+            fontSize: '14px', color: '#00ffcc',
         }).setOrigin(0.5);
         this.input.once('pointerdown', () => this.scene.start('MenuScene'));
         this.input.keyboard.once('keydown', () => this.scene.start('MenuScene'));
@@ -121,24 +149,27 @@ export default class GameScene extends Phaser.Scene {
     }
 
     createBrickByType(x, y, type) {
-        const brick = this.add.rectangle(x, y, 60, 25, 0x999999);
+        const brick = this.add.rectangle(x, y, 60, 25, 0x000000);
         this.physics.add.existing(brick, true);
         brick.setData('type', type);
 
         if (type === 'normal') {
             brick.setData('hp', 1 * this.hpMultiplier);
-            brick.setFillStyle(0x888888);
+            brick.setFillStyle(0x2255bb);
+            brick.setStrokeStyle(1, 0x4488ff, 1);
         } else if (type === 'armored') {
             brick.setData('hp', 3 * this.hpMultiplier);
-            brick.setStrokeStyle(2, 0xffffff);
-            brick.setFillStyle(0xaaaaaa);
+            brick.setStrokeStyle(2, 0x00ffcc);
+            brick.setFillStyle(0x446688);
         } else if (type === 'explosive') {
             brick.setData('hp', 1 * this.hpMultiplier);
-            brick.setFillStyle(0xff0000);
+            brick.setFillStyle(0xff2244);
+            brick.setStrokeStyle(1, 0xff8800, 1);
         } else if (type === 'ghost') {
             brick.setData('hp', 1 * this.hpMultiplier);
             brick.setData('isGhost', false);
-            brick.setStrokeStyle(2, 0xffffff, 1);
+            brick.setFillStyle(0x220044, 0.6);
+            brick.setStrokeStyle(2, 0xaa44ff, 1);
             this.time.addEvent({
                 delay: 3000,
                 callback: () => this.toggleGhost(brick),
@@ -154,10 +185,12 @@ export default class GameScene extends Phaser.Scene {
         const isGhost = !brick.getData('isGhost');
         brick.setData('isGhost', isGhost);
         if (isGhost) {
-            brick.setFillStyle(0x888888, 0);
+            brick.setFillStyle(0xaa44ff, 0.15);
+            brick.setStrokeStyle(1, 0x660088, 0.4);
             brick.body.enable = false;
         } else {
-            brick.setFillStyle(0x888888, 1);
+            brick.setFillStyle(0x220044, 0.6);
+            brick.setStrokeStyle(2, 0xaa44ff, 1);
             brick.body.enable = true;
         }
     }
@@ -170,8 +203,8 @@ export default class GameScene extends Phaser.Scene {
 
         if (hp > 0) {
             if (type === 'armored') {
-                if (hp === 2) brick.setStrokeStyle(0);
-                if (hp === 1) brick.setFillStyle(0x888888);
+                if (hp === 2) brick.setStrokeStyle(1, 0x004433, 1);
+                if (hp === 1) brick.setFillStyle(0x223344);
             }
         } else {
             if (type === 'explosive') this.spawnBullet(brick.x, brick.y);
@@ -185,8 +218,9 @@ export default class GameScene extends Phaser.Scene {
     }
 
     spawnBullet(x, y) {
-        const bullet = this.add.rectangle(x, y, 10, 20, 0xff5500);
+        const bullet = this.add.rectangle(x, y, 8, 16, 0xff6600);
         this.physics.add.existing(bullet);
+        bullet.setStrokeStyle(1, 0xffaa00, 1);
         this.enemyBullets.add(bullet);
         bullet.body.setVelocityY(this.bulletSpeed);
     }
@@ -196,7 +230,7 @@ export default class GameScene extends Phaser.Scene {
     // ==========================================
 
     initBall() {
-        this.ball = this.add.circle(240, 620, 10, 0xffffff);
+        this.ball = this.add.rectangle(240, 620, 12, 12, 0xffee00);
         this.physics.add.existing(this.ball);
         this.ball.body.setCollideWorldBounds(true).setBounce(1, 1);
     }
@@ -258,17 +292,21 @@ export default class GameScene extends Phaser.Scene {
 
     createMobileControls() {
         const btnY = 740;
-        this.add.rectangle(120, btnY, 200, 80, 0x555555, 0.45)
-            .setInteractive()
-            .on('pointerdown', () => { this.isLeftDown = true; })
-            .on('pointerup',   () => { this.isLeftDown = false; });
+        const lBtn = this.add.rectangle(120, btnY, 200, 80, 0x000000, 0.75)
+            .setStrokeStyle(2, 0x00ffcc, 1)
+            .setInteractive();
+        lBtn.on('pointerdown', () => { this.isLeftDown = true;  lBtn.setFillStyle(0x003322, 0.9); });
+        lBtn.on('pointerup',   () => { this.isLeftDown = false; lBtn.setFillStyle(0x000000, 0.75); });
+        lBtn.on('pointerout',  () => { this.isLeftDown = false; lBtn.setFillStyle(0x000000, 0.75); });
 
-        this.add.rectangle(360, btnY, 200, 80, 0x555555, 0.45)
-            .setInteractive()
-            .on('pointerdown', () => { this.isRightDown = true; })
-            .on('pointerup',   () => { this.isRightDown = false; });
+        const rBtn = this.add.rectangle(360, btnY, 200, 80, 0x000000, 0.75)
+            .setStrokeStyle(2, 0x00ffcc, 1)
+            .setInteractive();
+        rBtn.on('pointerdown', () => { this.isRightDown = true;  rBtn.setFillStyle(0x003322, 0.9); });
+        rBtn.on('pointerup',   () => { this.isRightDown = false; rBtn.setFillStyle(0x000000, 0.75); });
+        rBtn.on('pointerout',  () => { this.isRightDown = false; rBtn.setFillStyle(0x000000, 0.75); });
 
-        this.add.text(120, btnY, '<<<', { fontSize: '32px' }).setOrigin(0.5);
-        this.add.text(360, btnY, '>>>', { fontSize: '32px' }).setOrigin(0.5);
+        this.add.text(120, btnY, '◄◄', { fontSize: '30px', color: '#00ffcc' }).setOrigin(0.5);
+        this.add.text(360, btnY, '►►', { fontSize: '30px', color: '#00ffcc' }).setOrigin(0.5);
     }
 }

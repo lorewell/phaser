@@ -45,6 +45,76 @@ class GameScene extends Phaser.Scene {
         
         this.initChessData();
         this.initChessPieces();
+        this.createUndoButton();
+    }
+
+    createUndoButton() {
+        const x = 400;
+        const y = 500;
+        
+        // 绘制像素圆形按钮背景
+        const btnBg = this.add.circle(x, y, 25, 0x4a3728);
+        btnBg.setStrokeStyle(2, 0xffffff);
+        btnBg.setInteractive({ useHandCursor: true });
+        
+        const btnText = this.add.text(x, y, '悔', {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontFamily: 'monospace'
+        }).setOrigin(0.5);
+
+        btnBg.on('pointerover', () => btnBg.setFillStyle(0x634a3a));
+        btnBg.on('pointerout', () => btnBg.setFillStyle(0x4a3728));
+        btnBg.on('pointerdown', () => this.undo());
+    }
+
+    undo() {
+        if (play.history.length === 0) return;
+        
+        // 如果是 PVE 模式且当前是玩家回合，点击悔棋需要连退两步（AI 的一步和玩家的一步）
+        // 如果只有一步（AI还没走），则退一步
+        const stepsToUndo = (play.mode === 'player_vs_ai' && play.history.length >= 2) ? 2 : 1;
+        
+        for (let i = 0; i < stepsToUndo; i++) {
+            if (play.history.length === 0) break;
+            const lastMove = play.history.pop();
+            this.executeUndo(lastMove);
+        }
+    }
+
+    executeUndo(move) {
+        const { key, from, to, eaten } = move;
+        const man = play.mans[key];
+        
+        // 1. 逻辑回退
+        play.map[to.y][to.x] = eaten ? eaten.key : null;
+        play.map[from.y][from.x] = key;
+        man.x = from.x;
+        man.y = from.y;
+        
+        // 2. 视觉回退
+        const piece = this.piecesMap[key];
+        piece.setData('lx', from.x);
+        piece.setData('ly', from.y);
+        piece.setPosition(
+            this.OFFSET_X + from.x * this.CELL_SIZE,
+            this.OFFSET_Y + from.y * this.CELL_SIZE
+        );
+        
+        // 3. 恢复被吃的棋子
+        if (eaten) {
+            const side = eaten.key === eaten.key.toLowerCase() ? 'r' : 'b';
+            const type = eaten.key[0].toLowerCase();
+            this.addPieceToBoard(to.x, to.y, `${side}_${type}`, eaten.key);
+        }
+        
+        play.my = -play.my; // 切换回上一步的行动方
+        
+        // 清理状态
+        if (this.selectedPiece) this.selectedPiece.clearTint();
+        this.selectedPiece = null;
+        this.dots.forEach(d => d.destroy());
+        this.dots = [];
     }
 
     initChessData() {
@@ -160,6 +230,15 @@ class GameScene extends Phaser.Scene {
         const oly = man.y;
         
         const targetKey = play.map[nly][nlx];
+        
+        // 记录历史记录以便悔棋
+        play.history.push({
+            key: key,
+            from: { x: olx, y: oly },
+            to: { x: nlx, y: nly },
+            eaten: targetKey ? { key: targetKey } : null
+        });
+
         if (targetKey) {
             this.piecesMap[targetKey].destroy();
             delete this.piecesMap[targetKey];

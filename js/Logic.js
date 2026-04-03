@@ -31,7 +31,8 @@ var play = play || {
     level: 'normal', // 默认难度: simple, normal, hard
     mode: 'player_vs_ai', // 默认模式: player_vs_ai, ai_vs_ai
     depth: 3,
-    isFoul: []
+    isFoul: [],
+    history: [] // 用于存储走法历史供悔棋使用
 };
 
 // 棋子基础类

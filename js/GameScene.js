@@ -40,25 +40,177 @@ class GameScene extends Phaser.Scene {
         this.board.setScale(3); // 放大棋盘原图
         this.board.setTint(0xcccccc); // 稍微调暗一点占位图
 
+        this.selectedPiece = null;
+        this.dots = []; // 用于显示可行走点的点阵
+        
+        this.initChessData();
         this.initChessPieces();
     }
 
+    initChessData() {
+        play.map = this.getInitialMap();
+        // 为每个位置分配唯一 ID 方案 (c0, m0, etc)
+        const counts = {};
+        for (let y = 0; y < 10; y++) {
+            for (let x = 0; x < 9; x++) {
+                let char = play.map[y][x];
+                if (char) {
+                    let id = char + (counts[char] || 0);
+                    play.map[y][x] = id;
+                    counts[char] = (counts[char] || 0) + 1;
+                }
+            }
+        }
+        play.initMans(play.map);
+        play.my = 1; // 红方先手
+    }
+
     initChessPieces() {
-        const map = this.getInitialMap();
+        const map = play.map;
+        // 清理旧棋子
+        if (this.piecesMap) {
+            Object.values(this.piecesMap).forEach(p => p.destroy());
+        }
+        this.piecesMap = {};
         
         for (let y = 0; y < map.length; y++) {
             for (let x = 0; x < map[y].length; x++) {
                 const key = map[y][x];
                 if (key) {
-                    // 解析 key: 大写是蓝方(b)，小写是红方(r)
-                    const isRed = key[0] === key[0].toLowerCase();
+                    const isRed = key === key.toLowerCase();
                     const side = isRed ? 'r' : 'b';
-                    const type = key[0].toLowerCase(); // 取 c, m, x 等类型
-                    
+                    const type = key[0].toLowerCase();
                     const textureKey = `${side}_${type}`;
-                    this.createPiece(x, y, textureKey);
+                    this.addPieceToBoard(x, y, textureKey, key);
                 }
             }
+        }
+    }
+
+    addPieceToBoard(lx, ly, textureKey, key) {
+        const x = this.OFFSET_X + lx * this.CELL_SIZE;
+        const y = this.OFFSET_Y + ly * this.CELL_SIZE;
+        const piece = this.add.sprite(x, y, textureKey);
+        piece.setScale(this.PIECE_SCALE);
+        piece.setInteractive();
+        piece.setData('lx', lx);
+        piece.setData('ly', ly);
+        piece.setData('key', key);
+        
+        piece.on('pointerdown', () => this.onPieceClicked(piece));
+        this.piecesMap[key] = piece;
+    }
+
+    onPieceClicked(piece) {
+        if (play.my === 1) {
+            // 当前是红方回合
+            const isRed = piece.getData('key') === piece.getData('key').toLowerCase();
+            if (isRed) {
+                this.selectPiece(piece);
+            } else if (this.selectedPiece) {
+                this.attemptMove(this.selectedPiece, piece.getData('lx'), piece.getData('ly'));
+            }
+        } else {
+            // 当前是蓝方回合
+            const isBlue = piece.getData('key') === piece.getData('key').toUpperCase();
+            if (isBlue) {
+                this.selectPiece(piece);
+            } else if (this.selectedPiece) {
+                this.attemptMove(this.selectedPiece, piece.getData('lx'), piece.getData('ly'));
+            }
+        }
+    }
+
+    selectPiece(piece) {
+        if (this.selectedPiece) this.selectedPiece.clearTint();
+        this.selectedPiece = piece;
+        piece.setTint(0xffff00);
+        this.showDots(piece);
+    }
+
+    showDots(piece) {
+        this.dots.forEach(d => d.destroy());
+        this.dots = [];
+        const man = play.mans[piece.getData('key')];
+        const moves = man.bl(play.map);
+        moves.forEach(([lx, ly]) => {
+            const x = this.OFFSET_X + lx * this.CELL_SIZE;
+            const y = this.OFFSET_Y + ly * this.CELL_SIZE;
+            const dot = this.add.circle(x, y, 5, 0x00ff00, 0.5);
+            dot.setInteractive();
+            dot.on('pointerdown', () => this.attemptMove(this.selectedPiece, lx, ly));
+            this.dots.push(dot);
+        });
+    }
+
+    attemptMove(piece, nlx, nly) {
+        const key = piece.getData('key');
+        const man = play.mans[key];
+        const moves = man.bl(play.map);
+        
+        const isLegal = moves.some(([x, y]) => x === nlx && y === nly);
+        if (isLegal) {
+            this.movePiece(key, nlx, nly);
+        }
+    }
+
+    movePiece(key, nlx, nly) {
+        const man = play.mans[key];
+        const olx = man.x;
+        const oly = man.y;
+        
+        const targetKey = play.map[nly][nlx];
+        if (targetKey) {
+            this.piecesMap[targetKey].destroy();
+            delete this.piecesMap[targetKey];
+            if (targetKey.toLowerCase().indexOf('j') === 0) {
+                alert(play.my === 1 ? "红方获胜！" : "蓝方获胜！");
+                location.reload();
+            }
+        }
+        
+        play.map[oly][olx] = null;
+        play.map[nly][nlx] = key;
+        man.x = nlx;
+        man.y = nly;
+        
+        const piece = this.piecesMap[key];
+        piece.setData('lx', nlx);
+        piece.setData('ly', nly);
+        this.tweens.add({
+            targets: piece,
+            x: this.OFFSET_X + nlx * this.CELL_SIZE,
+            y: this.OFFSET_Y + nly * this.CELL_SIZE,
+            duration: 250,
+            ease: 'Power2',
+            onComplete: () => {
+                this.endTurn();
+            }
+        });
+
+        if (this.selectedPiece) this.selectedPiece.clearTint();
+        this.selectedPiece = null;
+        this.dots.forEach(d => d.destroy());
+        this.dots = [];
+    }
+
+    endTurn() {
+        play.my = -play.my;
+        if (play.mode === 'player_vs_ai' && play.my === -1) {
+            this.time.delayedCall(500, () => this.aiTurn());
+        }
+    }
+
+    aiTurn() {
+        if (play.mode !== 'player_vs_ai') return;
+        const move = AI.init("");
+        if (move) {
+            const [ox, oy, nx, ny] = move;
+            const key = play.map[oy][ox];
+            this.movePiece(key, nx, ny);
+        } else {
+            alert("AI 认输，红方获胜！");
+            this.scene.start('MenuScene');
         }
     }
 
@@ -156,37 +308,29 @@ class GameScene extends Phaser.Scene {
     // 辅助函数：在内存 Canvas 上绘制单个像素棋子
     drawSinglePixelPiece(key, bgColor, outlineColor, fontColor, fontMap) {
         const size = this.PIECE_SIZE;
-        // 1. 创建一个临时的 CanvasTexture
         const canvasTexture = this.textures.createCanvas(key, size, size);
-        const ctx = canvasTexture.context; // 获取底层 Canvas 2D 上下文
+        const ctx = canvasTexture.context;
 
-        // 2. 绘制像素轮廓 (一个像素圆圈)
         ctx.fillStyle = outlineColor;
         this.fillPixelCircle(ctx, size / 2, size / 2, size / 2 - 1);
 
-        // 3. 绘制填充背景 (一个像素内圆)
         ctx.fillStyle = bgColor;
         this.fillPixelCircle(ctx, size / 2, size / 2, size / 2 - 2);
 
-        // 4. 绘制汉字像素点阵
         ctx.fillStyle = fontColor;
-        const fontOffsetX = Math.floor((size - 7) / 2); // 居中
-        const fontOffsetY = Math.floor((size - 7) / 2); // 居中
+        const fontOffsetX = Math.floor((size - 7) / 2);
+        const fontOffsetY = Math.floor((size - 7) / 2);
 
         for (let y = 0; y < 7; y++) {
             for (let x = 0; x < 7; x++) {
                 if (fontMap[y][x] === "1") {
-                    // 画一个“像素点”（通常是1x1，这里用1x1的矩形模拟）
                     ctx.fillRect(fontOffsetX + x, fontOffsetY + y, 1, 1);
                 }
             }
         }
-
-        // 核心：告诉 Phaser 纹理已经改变，需要重新加载到 GPU
         canvasTexture.refresh();
     }
 
-    // 绘制过程生成的像素圆
     fillPixelCircle(ctx, x, y, radius) {
         for (let i = -radius; i <= radius; i++) {
             for (let j = -radius; j <= radius; j++) {
@@ -197,16 +341,15 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    // --- 过程生成：棋盘 (占位用，直到你有真正的像素图) ---
     generatePixelBoardTexture() {
-        const size = 64; // 生成一个很小的原图
+        const size = 64;
         const texture = this.textures.createCanvas('pixel-board', size, size);
         const ctx = texture.context;
 
-        ctx.fillStyle = '#b58863'; // 木色
+        ctx.fillStyle = '#b58863';
         ctx.fillRect(0, 0, size, size);
 
-        ctx.fillStyle = '#f0d9b5'; // 格子色
+        ctx.fillStyle = '#f0d9b5';
         for (let y = 0; y < size; y += 8) {
             for (let x = 0; x < size; x += 8) {
                 if ((x / 8 + y / 8) % 2 === 0) {
@@ -215,28 +358,5 @@ class GameScene extends Phaser.Scene {
             }
         }
         texture.refresh();
-    }
-
-    // 辅助函数：在场景中添加一颗棋子精灵
-    createPiece(lx, ly, textureKey) {
-        const x = this.OFFSET_X + lx * this.CELL_SIZE;
-        const y = this.OFFSET_Y + ly * this.CELL_SIZE;
-        
-        // 添加 Sprite，并应用放大倍数以产生粗颗粒像素感
-        const piece = this.add.sprite(x, y, textureKey);
-        piece.setScale(this.PIECE_SCALE); // 放大过程生成的原图
-        
-        // 添加像素点击效果
-        piece.setInteractive();
-        piece.on('pointerdown', () => {
-            this.tweens.add({
-                targets: piece,
-                y: y - 10,
-                duration: 100,
-                yoyo: true,
-                ease: 'Power1'
-            });
-            console.log(`点击了棋子: ${textureKey} at (${lx}, ${ly})`);
-        });
     }
 }

@@ -64,6 +64,7 @@
 
         this.selectedPiece = null;
         this.dots = [];
+        this.moveMarkers = []; // 记录移动轨迹的点
 
         this.initChessData();
         this.initChessPieces();
@@ -228,6 +229,8 @@
         this.selectedPiece = null;
         this.dots.forEach(d => d.destroy());
         this.dots = [];
+        this.moveMarkers.forEach(m => m.destroy());
+        this.moveMarkers = [];
     }
 
     initChessData() {
@@ -328,14 +331,20 @@
         this.dots = [];
         const moves = play.mans[piece.getData("key")].bl(play.map);
         moves.forEach(([lx, ly]) => {
-            const dot = this.add.circle(
-                this.OFFSET_X + lx * this.CS,
-                this.OFFSET_Y + ly * this.CS,
-                5, 0x00e000, 0.4
-            );
-            dot.setInteractive();
-            dot.on("pointerdown", () => this.attemptMove(this.selectedPiece, lx, ly));
-            this.dots.push(dot);
+            const x = this.OFFSET_X + lx * this.CS;
+            const y = this.OFFSET_Y + ly * this.CS;
+            
+            // 外圈边框
+            const ring = this.add.arc(x, y, 5, 0, 360, false, 0x00e000, 0);
+            ring.setStrokeStyle(1, 0x00e000, 0.6);
+            // 内实心点
+            const core = this.add.circle(x, y, 2, 0x00e000, 0.8);
+            
+            const group = this.add.container(0, 0, [ring, core]);
+            group.setInteractive(new Phaser.Geom.Circle(x, y, 10), Phaser.Geom.Circle.Contains);
+            group.on("pointerdown", () => this.attemptMove(this.selectedPiece, lx, ly));
+            
+            this.dots.push(group);
         });
     }
 
@@ -366,7 +375,29 @@
         play.map[nly][nlx] = key;
         man.x = nlx; man.y = nly;
 
+        // 清除旧的移动标记并添加新标记（移动前的位置）
+        this.moveMarkers.forEach(m => m.destroy());
+        this.moveMarkers = [];
+        
+        const mx = this.OFFSET_X + olx * this.CS;
+        const my = this.OFFSET_Y + oly * this.CS;
+        
+        // 标记：白色边框圆环 + 中心小点
+        const markerRing = this.add.arc(mx, my, 5, 0, 360, false, 0xffffff, 0);
+        markerRing.setStrokeStyle(1, 0xffffff, 0.6);
+        const markerCore = this.add.circle(mx, my, 2, 0xffffff, 0.8);
+        
+        this.moveMarkers.push(markerRing, markerCore);
+
         const piece = this.piecesMap[key];
+        
+        // 为移动后的棋子添加白色圆环边框标记
+        const px = this.OFFSET_X + nlx * this.CS;
+        const py = this.OFFSET_Y + nly * this.CS;
+        const pieceMarker = this.add.circle(px, py, (this.PIECE_SIZE / 2) + 0.1);
+        pieceMarker.setStrokeStyle(1, 0xffffff, 0.5);
+        this.moveMarkers.push(pieceMarker);
+
         piece.setData("lx", nlx).setData("ly", nly);
         this.tweens.add({
             targets: piece,

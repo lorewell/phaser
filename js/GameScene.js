@@ -65,6 +65,7 @@
         this.selectedPiece = null;
         this.dots = [];
         this.moveMarkers = []; // 记录移动轨迹的点
+        this._moving = false;  // 动画进行中标志
 
         this.initChessData();
         this.initChessPieces();
@@ -297,6 +298,7 @@
     }
 
     onPieceClicked(piece) {
+        if (this._moving) return; // 动画进行中，禁止操作
         const key   = piece.getData("key");
         const isRed = key === key.toLowerCase();
         if (play.my === 1) {
@@ -315,14 +317,53 @@
 
     clearPieceTint(c) {
         if (!c) return;
-        const img   = c.getAt(0);
+        const img = c.getAt(0);
+        if (img) img.clearTint();
+        // 停止漂浮动画并还原缩放和位置
+        this.tweens.killTweensOf(c);
+        c.setScale(1);
+        const lx = c.getData("lx");
+        const ly = c.getData("ly");
+        c.setPosition(this.OFFSET_X + lx * this.CS, this.OFFSET_Y + ly * this.CS);
+    }
+
+    // 仅清除高亮色，不干扰动画（移动过程中使用）
+    clearPieceTintOnly(c) {
+        if (!c) return;
+        const img = c.getAt(0);
         if (img) img.clearTint();
     }
 
     selectPiece(piece) {
-        if (this.selectedPiece) this.clearPieceTint(this.selectedPiece);
+        if (this.selectedPiece) {
+            this.clearPieceTint(this.selectedPiece);
+            // 取消之前棋子的漂浮动画，还原缩放
+            this.tweens.killTweensOf(this.selectedPiece);
+            this.selectedPiece.setScale(1);
+        }
         this.selectedPiece = piece;
         this.setPieceTint(piece, 0xffdd00);
+
+        // 漂浮动画：轻微放大 + 上下浮动
+        piece.setScale(1);
+        this.tweens.add({
+            targets : piece,
+            scaleX  : 1.12,
+            scaleY  : 1.12,
+            duration: 180,
+            ease    : "Back.easeOut",
+            onComplete: () => {
+                this.tweens.add({
+                    targets  : piece,
+                    y        : piece.y - 3,
+                    duration : 500,
+                    ease     : "Sine.easeInOut",
+                    yoyo     : true,
+                    repeat   : -1
+                });
+            }
+        });
+
         this.showDots(piece);
     }
 
@@ -399,15 +440,50 @@
         this.moveMarkers.push(pieceMarker);
 
         piece.setData("lx", nlx).setData("ly", nly);
+
+        // 先清除高亮色（不干扰动画），并锁定操作防止动画期间误操作
+        this.clearPieceTintOnly(piece);
+        this.tweens.killTweensOf(piece);
+        this._moving = true;
+
+        const targetX = this.OFFSET_X + nlx * this.CS;
+        const targetY = this.OFFSET_Y + nly * this.CS;
+
+        // 第一段：先小幅上抬（模拟起飞）
         this.tweens.add({
-            targets: piece,
-            x: this.OFFSET_X + nlx * this.CS,
-            y: this.OFFSET_Y + nly * this.CS,
-            duration: 200, ease: "Power2",
-            onComplete: () => this.endTurn()
+            targets : piece,
+            scaleX  : 1.15,
+            scaleY  : 1.15,
+            y       : piece.y - 6,
+            duration: 80,
+            ease    : "Sine.easeOut",
+            onComplete: () => {
+                // 第二段：平滑滑向目标位置
+                this.tweens.add({
+                    targets : piece,
+                    x       : targetX,
+                    y       : targetY - 6,
+                    duration: 180,
+                    ease    : "Power2.easeInOut",
+                    onComplete: () => {
+                        // 第三段：落下，回弹感
+                        this.tweens.add({
+                            targets : piece,
+                            y       : targetY,
+                            scaleX  : 1,
+                            scaleY  : 1,
+                            duration: 120,
+                            ease    : "Back.easeOut",
+                            onComplete: () => {
+                                this._moving = false;
+                                this.endTurn();
+                            }
+                        });
+                    }
+                });
+            }
         });
 
-        if (this.selectedPiece) this.clearPieceTint(this.selectedPiece);
         this.selectedPiece = null;
         this.dots.forEach(d => d.destroy());
         this.dots = [];

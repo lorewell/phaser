@@ -1,117 +1,227 @@
-class GameScene extends Phaser.Scene {
+﻿class GameScene extends Phaser.Scene {
     constructor() {
-        super('GameScene');
-        // 逻辑坐标与像素坐标的映射常量
-        this.CELL_SIZE = 45;    // 格子大小
-        this.OFFSET_X = 45;     // 棋盘留白
-        this.OFFSET_Y = 50;     // 棋盘留白
-        this.PIECE_SIZE = 20;   // 棋子生成时的原始像素大小（放大前）
-        this.PIECE_SCALE = 2;   // 棋子在场景中的放大倍数
-        this.piecesMap = {}; // 用于存放场景中的棋子实例，方便后续移动
+        super("GameScene");
+
+        //  棋盘布局常量 ─
+        // 格子大小（正方形，单位 px）
+        this.CS = 46;
+        // 外边距 = 格子的一半
+        this.PAD = Math.floor(this.CS / 2); // 23
+        // 棋盘交叉点列数 9、行数 10
+        this.COLS = 9;
+        this.ROWS = 10;
+        // 游戏逻辑分辨率
+        this.SCENE_W = 500;
+        this.SCENE_H = 700;
+
+        // 以下在 create() 中计算
+        this.OFFSET_X = 0;
+        this.OFFSET_Y = 0;
+        this.PIECE_SIZE = this.CS - 4;
+
+        this.piecesMap = {};
     }
 
     preload() {
-        // --- 核心步骤：直接生成像素纹理 ---
-        // 我们不需要 this.load.image 了，直接在 preload 里画图
-        this.generatePixelBoardTexture();
-        this.generatePixelPieceTextures();
+        this.load.image("chess-piece", "image/chess.png");
     }
 
     getInitialMap() {
         return [
-            ['C', 'M', 'X', 'S', 'J', 'S', 'X', 'M', 'C'],
-            [null, null, null, null, null, null, null, null, null],
-            [null, 'P', null, null, null, null, null, 'P', null],
-            ['Z', null, 'Z', null, 'Z', null, 'Z', null, 'Z'],
-            [null, null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null, null],
-            ['z', null, 'z', null, 'z', null, 'z', null, 'z'],
-            [null, 'p', null, null, null, null, null, 'p', null],
-            [null, null, null, null, null, null, null, null, null],
-            ['c', 'm', 'x', 's', 'j', 's', 'x', 'm', 'c']
+            ["C","M","X","S","J","S","X","M","C"],
+            [null,null,null,null,null,null,null,null,null],
+            [null,"P",null,null,null,null,null,"P",null],
+            ["Z",null,"Z",null,"Z",null,"Z",null,"Z"],
+            [null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null],
+            ["z",null,"z",null,"z",null,"z",null,"z"],
+            [null,"p",null,null,null,null,null,"p",null],
+            [null,null,null,null,null,null,null,null,null],
+            ["c","m","x","s","j","s","x","m","c"]
         ];
     }
 
     create() {
-        this.cameras.main.setBackgroundColor('#2c1e14');
+        this.cameras.main.setBackgroundColor("#1a1008");
 
-        this.board = this.add.image(this.OFFSET_X - 22, this.OFFSET_Y - 25, 'pixel-board');
-        this.board.setOrigin(0);
-        this.board.setScale(3); // 放大棋盘原图
-        this.board.setTint(0xcccccc); // 稍微调暗一点占位图
+        const CS   = this.CS;
+        const PAD  = this.PAD;
+        const COLS = this.COLS;
+        const ROWS = this.ROWS;
+
+        const boardW = (COLS - 1) * CS;  // 8 * 46 = 368
+        const boardH = (ROWS - 1) * CS;  // 9 * 46 = 414
+        const totalW = boardW + PAD * 2; // 368 + 46 = 414
+        const totalH = boardH + PAD * 2; // 414 + 46 = 460
+
+        const boardX = Math.floor((this.SCENE_W - totalW) / 2); // 43
+        const boardY = Math.floor((this.SCENE_H - totalH) / 2); // 120
+
+        this.OFFSET_X = boardX + PAD; // 66
+        this.OFFSET_Y = boardY + PAD; // 143
+
+        this.drawBoard(boardX, boardY, boardW, boardH);
 
         this.selectedPiece = null;
-        this.dots = []; // 用于显示可行走点的点阵
-        
+        this.dots = [];
+
         this.initChessData();
         this.initChessPieces();
         this.createUndoButton();
     }
 
+    drawBoard(boardX, boardY, boardW, boardH) {
+        const { CS, PAD, COLS, ROWS, OFFSET_X, OFFSET_Y } = this;
+        const LINE_W = 4;
+        const g = this.add.graphics();
+
+        // 1. 棋盘底色（棕色，含 padding）
+        g.fillStyle(0xC89448, 1);
+        g.fillRect(boardX, boardY, boardW + PAD * 2, boardH + PAD * 2);
+
+        // 2. 外边框
+        g.lineStyle(LINE_W, 0x5c3010, 1);
+        g.strokeRect(OFFSET_X, OFFSET_Y, boardW, boardH);
+
+        // 3. 横线 10 根
+        for (let r = 0; r < ROWS; r++) {
+            const y = OFFSET_Y + r * CS;
+            g.beginPath();
+            g.moveTo(OFFSET_X, y);
+            g.lineTo(OFFSET_X + boardW, y);
+            g.strokePath();
+        }
+
+        // 4. 竖线 9 根，中间 7 根楚河汉界处断开
+        for (let c = 0; c < COLS; c++) {
+            const x = OFFSET_X + c * CS;
+            if (c === 0 || c === COLS - 1) {
+                g.beginPath();
+                g.moveTo(x, OFFSET_Y);
+                g.lineTo(x, OFFSET_Y + boardH);
+                g.strokePath();
+            } else {
+                g.beginPath();
+                g.moveTo(x, OFFSET_Y);
+                g.lineTo(x, OFFSET_Y + 4 * CS);
+                g.strokePath();
+                g.beginPath();
+                g.moveTo(x, OFFSET_Y + 5 * CS);
+                g.lineTo(x, OFFSET_Y + boardH);
+                g.strokePath();
+            }
+        }
+
+        // 5. 楚河汉界文字（行 4~5 之间，高度 = CS）
+        const riverStyle = {
+            fontSize   : Math.floor(CS * 0.50) + "px",
+            color      : "#5c3010",
+            fontFamily : "'Zpix', monospace",
+            resolution : 2
+        };
+        const riverY = OFFSET_Y + 4 * CS;
+        const halfW  = Math.floor(boardW / 2);
+
+        this.add.text(
+            OFFSET_X + halfW * 0.5,
+            riverY + CS / 2,
+            "楚  河",
+            riverStyle
+        ).setOrigin(0.5, 0.5);
+
+        this.add.text(
+            OFFSET_X + halfW + halfW * 0.5,
+            riverY + CS / 2,
+            "汉  界",
+            riverStyle
+        ).setOrigin(0.5, 0.5);
+
+        // 6. 九宫斜线
+        g.lineStyle(LINE_W, 0x5c3010, 1);
+        this._drawDiag(g, 3, 5, 0, 2);
+        this._drawDiag(g, 5, 3, 0, 2);
+        this._drawDiag(g, 3, 5, 7, 9);
+        this._drawDiag(g, 5, 3, 7, 9);
+
+        // 7. 炮位 & 兵卒位标记
+        [[1,2],[7,2],[1,7],[7,7]].forEach(([c,r]) => this._drawMark(g, c, r));
+        [[0,3],[2,3],[4,3],[6,3],[8,3],
+         [0,6],[2,6],[4,6],[6,6],[8,6]].forEach(([c,r]) => this._drawMark(g, c, r));
+    }
+
+    _drawDiag(g, c1, c2, r1, r2) {
+        g.beginPath();
+        g.moveTo(this.OFFSET_X + c1 * this.CS, this.OFFSET_Y + r1 * this.CS);
+        g.lineTo(this.OFFSET_X + c2 * this.CS, this.OFFSET_Y + r2 * this.CS);
+        g.strokePath();
+    }
+
+    _drawMark(g, col, row) {
+        const { CS, OFFSET_X, OFFSET_Y, COLS, ROWS } = this;
+        const mx = OFFSET_X + col * CS;
+        const my = OFFSET_Y + row * CS;
+        const len = 7, gap = 4;
+        g.lineStyle(2, 0x5c3010, 1);
+        const segs = [];
+        if (col > 0)        segs.push([mx - gap - len, my,        mx - gap,        my       ]);
+        if (col < COLS - 1) segs.push([mx + gap,        my,        mx + gap + len,  my       ]);
+        if (row > 0)        segs.push([mx,        my - gap - len, mx,        my - gap       ]);
+        if (row < ROWS - 1) segs.push([mx,        my + gap,        mx,        my + gap + len]);
+        segs.forEach(([x1,y1,x2,y2]) => {
+            g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.strokePath();
+        });
+    }
+
     createUndoButton() {
-        const x = 400;
-        const y = 500;
-        
-        // 绘制像素圆形按钮背景
-        const btnBg = this.add.circle(x, y, 25, 0x4a3728);
-        btnBg.setStrokeStyle(2, 0xffffff);
-        btnBg.setInteractive({ useHandCursor: true });
-        
-        const btnText = this.add.text(x, y, '悔', {
-            fontSize: '24px',
-            color: '#ffffff',
-            fontFamily: 'monospace'
+        const x = this.SCENE_W / 2;
+        const y = this.SCENE_H - 36;
+
+        const btnBg = this.add.rectangle(x, y, 120, 40, 0x5c3010)
+            .setStrokeStyle(3, 0xd4a355)
+            .setInteractive({ useHandCursor: true });
+
+        this.add.text(x, y, "悔  棋", {
+            fontSize   : "20px",
+            color      : "#f0d9b5",
+            fontFamily : "'Zpix', monospace",
+            resolution : 2
         }).setOrigin(0.5);
 
-        btnBg.on('pointerover', () => btnBg.setFillStyle(0x634a3a));
-        btnBg.on('pointerout', () => btnBg.setFillStyle(0x4a3728));
-        btnBg.on('pointerdown', () => this.undo());
+        btnBg.on("pointerover", () => btnBg.setFillStyle(0x8a4a1a));
+        btnBg.on("pointerout",  () => btnBg.setFillStyle(0x5c3010));
+        btnBg.on("pointerdown", () => this.undo());
     }
 
     undo() {
         if (play.history.length === 0) return;
-        
-        // 如果是 PVE 模式且当前是玩家回合，点击悔棋需要连退两步（AI 的一步和玩家的一步）
-        // 如果只有一步（AI还没走），则退一步
-        const stepsToUndo = (play.mode === 'player_vs_ai' && play.history.length >= 2) ? 2 : 1;
-        
-        for (let i = 0; i < stepsToUndo; i++) {
+        const steps = (play.mode === "player_vs_ai" && play.history.length >= 2) ? 2 : 1;
+        for (let i = 0; i < steps; i++) {
             if (play.history.length === 0) break;
-            const lastMove = play.history.pop();
-            this.executeUndo(lastMove);
+            this.executeUndo(play.history.pop());
         }
     }
 
     executeUndo(move) {
         const { key, from, to, eaten } = move;
         const man = play.mans[key];
-        
-        // 1. 逻辑回退
-        play.map[to.y][to.x] = eaten ? eaten.key : null;
+
+        play.map[to.y][to.x]    = eaten ? eaten.key : null;
         play.map[from.y][from.x] = key;
         man.x = from.x;
         man.y = from.y;
-        
-        // 2. 视觉回退
+
         const piece = this.piecesMap[key];
-        piece.setData('lx', from.x);
-        piece.setData('ly', from.y);
+        piece.setData("lx", from.x);
+        piece.setData("ly", from.y);
         piece.setPosition(
-            this.OFFSET_X + from.x * this.CELL_SIZE,
-            this.OFFSET_Y + from.y * this.CELL_SIZE
+            this.OFFSET_X + from.x * this.CS,
+            this.OFFSET_Y + from.y * this.CS
         );
-        
-        // 3. 恢复被吃的棋子
-        if (eaten) {
-            const side = eaten.key === eaten.key.toLowerCase() ? 'r' : 'b';
-            const type = eaten.key[0].toLowerCase();
-            this.addPieceToBoard(to.x, to.y, `${side}_${type}`, eaten.key);
-        }
-        
-        play.my = -play.my; // 切换回上一步的行动方
-        
-        // 清理状态
-        if (this.selectedPiece) this.selectedPiece.clearTint();
+
+        if (eaten) this.addPieceToBoard(to.x, to.y, eaten.key);
+
+        play.my = -play.my;
+        if (this.selectedPiece) this.clearPieceTint(this.selectedPiece);
         this.selectedPiece = null;
         this.dots.forEach(d => d.destroy());
         this.dots = [];
@@ -119,155 +229,152 @@ class GameScene extends Phaser.Scene {
 
     initChessData() {
         play.map = this.getInitialMap();
-        // 为每个位置分配唯一 ID 方案 (c0, m0, etc)
         const counts = {};
         for (let y = 0; y < 10; y++) {
             for (let x = 0; x < 9; x++) {
-                let char = play.map[y][x];
+                const char = play.map[y][x];
                 if (char) {
-                    let id = char + (counts[char] || 0);
-                    play.map[y][x] = id;
+                    play.map[y][x] = char + (counts[char] || 0);
                     counts[char] = (counts[char] || 0) + 1;
                 }
             }
         }
         play.initMans(play.map);
-        play.my = 1; // 红方先手
+        play.my = 1;
     }
 
     initChessPieces() {
-        const map = play.map;
-        // 清理旧棋子
-        if (this.piecesMap) {
-            Object.values(this.piecesMap).forEach(p => p.destroy());
-        }
+        if (this.piecesMap) Object.values(this.piecesMap).forEach(p => p.destroy());
         this.piecesMap = {};
-        
-        for (let y = 0; y < map.length; y++) {
-            for (let x = 0; x < map[y].length; x++) {
-                const key = map[y][x];
-                if (key) {
-                    const isRed = key === key.toLowerCase();
-                    const side = isRed ? 'r' : 'b';
-                    const type = key[0].toLowerCase();
-                    const textureKey = `${side}_${type}`;
-                    this.addPieceToBoard(x, y, textureKey, key);
-                }
-            }
-        }
+        const map = play.map;
+        for (let y = 0; y < map.length; y++)
+            for (let x = 0; x < map[y].length; x++)
+                if (map[y][x]) this.addPieceToBoard(x, y, map[y][x]);
     }
 
-    addPieceToBoard(lx, ly, textureKey, key) {
-        const x = this.OFFSET_X + lx * this.CELL_SIZE;
-        const y = this.OFFSET_Y + ly * this.CELL_SIZE;
-        const piece = this.add.sprite(x, y, textureKey);
-        piece.setScale(this.PIECE_SCALE);
-        piece.setInteractive();
-        piece.setData('lx', lx);
-        piece.setData('ly', ly);
-        piece.setData('key', key);
-        
-        piece.on('pointerdown', () => this.onPieceClicked(piece));
-        this.piecesMap[key] = piece;
+    addPieceToBoard(lx, ly, key) {
+        const x   = this.OFFSET_X + lx * this.CS;
+        const y   = this.OFFSET_Y + ly * this.CS;
+        const sz  = this.PIECE_SIZE;
+        const isRed = key === key.toLowerCase();
+
+        const img = this.add.image(0, 0, "chess-piece")
+            .setDisplaySize(sz, sz)
+            .setTint(isRed ? 0xd4603a : 0x3a5c8a);
+
+        const charMap = {
+            c: { red: "车", black: "車" },
+            m: { red: "马", black: "馬" },
+            x: { red: "相", black: "象" },
+            s: { red: "仕", black: "士" },
+            j: { red: "帅", black: "将" },
+            p: { red: "炮", black: "砲" },
+            z: { red: "兵", black: "卒" }
+        };
+        const type  = key[0].toLowerCase();
+        const label = charMap[type] ? (isRed ? charMap[type].red : charMap[type].black) : type;
+
+        const txt = this.add.text(0, 0, label, {
+            fontSize        : Math.floor(sz * 0.40) + "px",
+            color           : isRed ? "#ffe0b0" : "#b0d8ff",
+            fontFamily      : "'Zpix', monospace",
+            stroke          : isRed ? "#7a2a00" : "#001a3a",
+            strokeThickness : 2,
+            resolution      : 2
+        }).setOrigin(0.5, 0.5);
+
+        const container = this.add.container(x, y, [img, txt]);
+        container.setSize(sz, sz).setInteractive();
+        container.setData("lx", lx).setData("ly", ly).setData("key", key);
+        container.on("pointerdown", () => this.onPieceClicked(container));
+        this.piecesMap[key] = container;
     }
 
     onPieceClicked(piece) {
+        const key   = piece.getData("key");
+        const isRed = key === key.toLowerCase();
         if (play.my === 1) {
-            // 当前是红方回合
-            const isRed = piece.getData('key') === piece.getData('key').toLowerCase();
-            if (isRed) {
-                this.selectPiece(piece);
-            } else if (this.selectedPiece) {
-                this.attemptMove(this.selectedPiece, piece.getData('lx'), piece.getData('ly'));
-            }
+            isRed ? this.selectPiece(piece)
+                  : (this.selectedPiece && this.attemptMove(this.selectedPiece, piece.getData("lx"), piece.getData("ly")));
         } else {
-            // 当前是蓝方回合
-            const isBlue = piece.getData('key') === piece.getData('key').toUpperCase();
-            if (isBlue) {
-                this.selectPiece(piece);
-            } else if (this.selectedPiece) {
-                this.attemptMove(this.selectedPiece, piece.getData('lx'), piece.getData('ly'));
-            }
+            !isRed ? this.selectPiece(piece)
+                   : (this.selectedPiece && this.attemptMove(this.selectedPiece, piece.getData("lx"), piece.getData("ly")));
         }
     }
 
+    setPieceTint(c, tint) {
+        const img = c && c.getAt(0);
+        if (img) img.setTint(tint);
+    }
+
+    clearPieceTint(c) {
+        if (!c) return;
+        const img   = c.getAt(0);
+        const isRed = c.getData("key") === c.getData("key").toLowerCase();
+        if (img) img.setTint(isRed ? 0xd4603a : 0x3a5c8a);
+    }
+
     selectPiece(piece) {
-        if (this.selectedPiece) this.selectedPiece.clearTint();
+        if (this.selectedPiece) this.clearPieceTint(this.selectedPiece);
         this.selectedPiece = piece;
-        piece.setTint(0xffff00);
+        this.setPieceTint(piece, 0xffdd00);
         this.showDots(piece);
     }
 
     showDots(piece) {
         this.dots.forEach(d => d.destroy());
         this.dots = [];
-        const man = play.mans[piece.getData('key')];
-        const moves = man.bl(play.map);
+        const moves = play.mans[piece.getData("key")].bl(play.map);
         moves.forEach(([lx, ly]) => {
-            const x = this.OFFSET_X + lx * this.CELL_SIZE;
-            const y = this.OFFSET_Y + ly * this.CELL_SIZE;
-            const dot = this.add.circle(x, y, 5, 0x00ff00, 0.5);
+            const dot = this.add.circle(
+                this.OFFSET_X + lx * this.CS,
+                this.OFFSET_Y + ly * this.CS,
+                7, 0x00e000, 0.65
+            );
             dot.setInteractive();
-            dot.on('pointerdown', () => this.attemptMove(this.selectedPiece, lx, ly));
+            dot.on("pointerdown", () => this.attemptMove(this.selectedPiece, lx, ly));
             this.dots.push(dot);
         });
     }
 
     attemptMove(piece, nlx, nly) {
-        const key = piece.getData('key');
-        const man = play.mans[key];
-        const moves = man.bl(play.map);
-        
-        const isLegal = moves.some(([x, y]) => x === nlx && y === nly);
-        if (isLegal) {
-            this.movePiece(key, nlx, nly);
-        }
+        const key   = piece.getData("key");
+        const moves = play.mans[key].bl(play.map);
+        if (moves.some(([x, y]) => x === nlx && y === nly)) this.movePiece(key, nlx, nly);
     }
 
     movePiece(key, nlx, nly) {
         const man = play.mans[key];
-        const olx = man.x;
-        const oly = man.y;
-        
+        const olx = man.x, oly = man.y;
         const targetKey = play.map[nly][nlx];
-        
-        // 记录历史记录以便悔棋
-        play.history.push({
-            key: key,
-            from: { x: olx, y: oly },
-            to: { x: nlx, y: nly },
-            eaten: targetKey ? { key: targetKey } : null
-        });
+
+        play.history.push({ key, from: { x: olx, y: oly }, to: { x: nlx, y: nly },
+                            eaten: targetKey ? { key: targetKey } : null });
 
         if (targetKey) {
             this.piecesMap[targetKey].destroy();
             delete this.piecesMap[targetKey];
-            if (targetKey.toLowerCase().indexOf('j') === 0) {
-                alert(play.my === 1 ? "红方获胜！" : "蓝方获胜！");
+            if (targetKey.toLowerCase().startsWith("j")) {
+                alert(play.my === 1 ? "红方获胜！" : "黑方获胜！");
                 location.reload();
             }
         }
-        
+
         play.map[oly][olx] = null;
         play.map[nly][nlx] = key;
-        man.x = nlx;
-        man.y = nly;
-        
+        man.x = nlx; man.y = nly;
+
         const piece = this.piecesMap[key];
-        piece.setData('lx', nlx);
-        piece.setData('ly', nly);
+        piece.setData("lx", nlx).setData("ly", nly);
         this.tweens.add({
             targets: piece,
-            x: this.OFFSET_X + nlx * this.CELL_SIZE,
-            y: this.OFFSET_Y + nly * this.CELL_SIZE,
-            duration: 250,
-            ease: 'Power2',
-            onComplete: () => {
-                this.endTurn();
-            }
+            x: this.OFFSET_X + nlx * this.CS,
+            y: this.OFFSET_Y + nly * this.CS,
+            duration: 200, ease: "Power2",
+            onComplete: () => this.endTurn()
         });
 
-        if (this.selectedPiece) this.selectedPiece.clearTint();
+        if (this.selectedPiece) this.clearPieceTint(this.selectedPiece);
         this.selectedPiece = null;
         this.dots.forEach(d => d.destroy());
         this.dots = [];
@@ -275,167 +382,19 @@ class GameScene extends Phaser.Scene {
 
     endTurn() {
         play.my = -play.my;
-        if (play.mode === 'player_vs_ai' && play.my === -1) {
+        if (play.mode === "player_vs_ai" && play.my === -1)
             this.time.delayedCall(500, () => this.aiTurn());
-        }
     }
 
     aiTurn() {
-        if (play.mode !== 'player_vs_ai') return;
+        if (play.mode !== "player_vs_ai") return;
         const move = AI.init("");
         if (move) {
             const [ox, oy, nx, ny] = move;
-            const key = play.map[oy][ox];
-            this.movePiece(key, nx, ny);
+            this.movePiece(play.map[oy][ox], nx, ny);
         } else {
             alert("AI 认输，红方获胜！");
-            this.scene.start('MenuScene');
+            this.scene.start("MenuScene");
         }
-    }
-
-    // --- 过程生成：棋子纹理 ---
-    generatePixelPieceTextures() {
-        // 定义红蓝方颜色
-        const redColor = '#cc0000';
-        const blueColor = '#0000cc';
-        const outlineColor = '#ffffff'; // 像素轮廓颜色
-        const fontColor = '#ffffff';    // 汉字颜色
-
-        // 定义要生成的棋子类型
-        const piecesData = [
-            { key: 'c', text: '车' }, { key: 'm', text: '马' }, { key: 'x', text: '相' },
-            { key: 's', text: '仕' }, { key: 'j', text: '将' }, { key: 'p', text: '炮' }, { key: 'z', text: '兵' }
-        ];
-
-        // 简化版的 7x7 像素汉字点阵定义 (1表示有色，0表示无色)
-        // 这些是像素象棋最迷人的地方：极简的表达
-        const pixelFonts = {
-            '车': [
-                "0111110",
-                "0100010",
-                "0111110",
-                "0010100",
-                "0111110",
-                "0100010",
-                "0111110"
-            ],
-            '马': [
-                "0111100",
-                "0100010",
-                "0111100",
-                "0111110",
-                "0100010",
-                "0100010",
-                "0000011"
-            ],
-            '相': [
-                "0101010",
-                "1010101",
-                "0111110",
-                "0001000",
-                "0111110",
-                "1010101",
-                "0101010"
-            ],
-            '仕': [
-                "0001000",
-                "0011100",
-                "0001000",
-                "0111110",
-                "0001000",
-                "0001000",
-                "0010100"
-            ],
-            '将': [
-                "0111110",
-                "0100010",
-                "0111110",
-                "0010100",
-                "0111110",
-                "0101010",
-                "0111110"
-            ],
-            '炮': [
-                "0111110",
-                "1010101",
-                "0111110",
-                "0010100",
-                "0111110",
-                "0101010",
-                "0111110"
-            ],
-            '兵': [
-                "0011100",
-                "0010100",
-                "0111110",
-                "0010100",
-                "0111110",
-                "1010101",
-                "0111110"
-            ]
-        };
-
-        // 为红蓝双方生成所有棋子
-        piecesData.forEach(p => {
-            // 红方 ('r_c', 'r_m'...)
-            this.drawSinglePixelPiece(`r_${p.key}`, redColor, outlineColor, fontColor, pixelFonts[p.text]);
-            // 蓝方 ('b_c', 'b_m'...)
-            this.drawSinglePixelPiece(`b_${p.key}`, blueColor, outlineColor, fontColor, pixelFonts[p.text]);
-        });
-    }
-
-    // 辅助函数：在内存 Canvas 上绘制单个像素棋子
-    drawSinglePixelPiece(key, bgColor, outlineColor, fontColor, fontMap) {
-        const size = this.PIECE_SIZE;
-        const canvasTexture = this.textures.createCanvas(key, size, size);
-        const ctx = canvasTexture.context;
-
-        ctx.fillStyle = outlineColor;
-        this.fillPixelCircle(ctx, size / 2, size / 2, size / 2 - 1);
-
-        ctx.fillStyle = bgColor;
-        this.fillPixelCircle(ctx, size / 2, size / 2, size / 2 - 2);
-
-        ctx.fillStyle = fontColor;
-        const fontOffsetX = Math.floor((size - 7) / 2);
-        const fontOffsetY = Math.floor((size - 7) / 2);
-
-        for (let y = 0; y < 7; y++) {
-            for (let x = 0; x < 7; x++) {
-                if (fontMap[y][x] === "1") {
-                    ctx.fillRect(fontOffsetX + x, fontOffsetY + y, 1, 1);
-                }
-            }
-        }
-        canvasTexture.refresh();
-    }
-
-    fillPixelCircle(ctx, x, y, radius) {
-        for (let i = -radius; i <= radius; i++) {
-            for (let j = -radius; j <= radius; j++) {
-                if (i * i + j * j <= radius * radius) {
-                    ctx.fillRect(x + i, y + j, 1, 1);
-                }
-            }
-        }
-    }
-
-    generatePixelBoardTexture() {
-        const size = 64;
-        const texture = this.textures.createCanvas('pixel-board', size, size);
-        const ctx = texture.context;
-
-        ctx.fillStyle = '#b58863';
-        ctx.fillRect(0, 0, size, size);
-
-        ctx.fillStyle = '#f0d9b5';
-        for (let y = 0; y < size; y += 8) {
-            for (let x = 0; x < size; x += 8) {
-                if ((x / 8 + y / 8) % 2 === 0) {
-                    ctx.fillRect(x, y, 8, 8);
-                }
-            }
-        }
-        texture.refresh();
     }
 }

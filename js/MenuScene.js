@@ -8,27 +8,28 @@ class MenuScene extends Phaser.Scene {
         
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
+        const cx = width / 2;
 
-        // 标题
-        this.add.text(width / 2, 100, 'PIXEL CHESS', {
-            fontSize: '40px',
+        // 标题：距顶部 18%
+        this.add.text(cx, height * 0.18, 'PIXEL CHESS', {
+            fontSize: '48px',
             color: '#f0d9b5',
             fontStyle: 'bold',
-            fontFamily: 'monospace'
+            fontFamily: 'Zpix, monospace'
         }).setOrigin(0.5);
 
-        // 菜单选项
-        this.createMenuItem(width / 2, 250, '本地双人对战', () => {
+        // 菜单选项：从 40% 高度开始，每项间距 10%
+        this.createMenuItem(cx, height * 0.40, '本地双人对战', () => {
             play.mode = 'player_vs_player';
             this.scene.start('GameScene');
         });
 
-        this.createMenuItem(width / 2, 320, '玩家对奏电脑', () => {
+        this.createMenuItem(cx, height * 0.50, '玩家对战电脑', () => {
             play.mode = 'player_vs_ai';
             this.scene.start('GameScene');
         });
 
-        this.createMenuItem(width / 2, 390, '游戏设置 (难度)', () => {
+        this.createMenuItem(cx, height * 0.60, '游戏设置 (难度)', () => {
             this.toggleSettings();
         });
 
@@ -37,35 +38,39 @@ class MenuScene extends Phaser.Scene {
     }
 
     createMenuItem(x, y, text, callback) {
-        const bg = this.add.rectangle(x, y, 280, 50, 0x4a3728)
+        const bg = this.add.rectangle(x, y, 300, 54, 0x4a3728)
             .setInteractive({ useHandCursor: true })
             .on('pointerover', () => bg.setFillStyle(0x634a3a))
             .on('pointerout', () => bg.setFillStyle(0x4a3728))
             .on('pointerdown', callback);
 
         this.add.text(x, y, text, {
-            fontSize: '20px',
+            fontSize: '24px',
             color: '#ffffff',
-            fontFamily: 'monospace'
+            fontFamily: 'Zpix, monospace'
         }).setOrigin(0.5);
     }
 
     setupSettingsPanel() {
         this.settingsGroup = this.add.group();
         const width = this.cameras.main.width;
-        
-        const bg = this.add.rectangle(width / 2, 480, 320, 60, 0x1a1a1a, 0.8);
-        const text = this.add.text(width / 2, 460, '当前难度: ' + play.level.toUpperCase(), {
-            fontSize: '14px',
-            color: '#aaaaaa'
+        const height = this.cameras.main.height;
+        const cx = width / 2;
+        const panelY = height * 0.73;
+
+        const bg = this.add.rectangle(cx, panelY, 340, 70, 0x1a1a1a, 0.85);
+        const text = this.add.text(cx, panelY - 14, '当前难度: ' + play.level.toUpperCase(), {
+            fontSize: '16px',
+            color: '#aaaaaa',
+            fontFamily: 'Zpix, monospace'
         }).setOrigin(0.5);
 
-        const btnEasy = this.add.text(width/2 - 80, 490, '[简单]', { color: play.level === 'simple' ? '#ff0000' : '#ffffff' })
-            .setInteractive().on('pointerdown', () => this.setLevel('simple'));
-        const btnNormal = this.add.text(width/2, 490, '[普通]', { color: play.level === 'normal' ? '#ff0000' : '#ffffff' })
-            .setInteractive().on('pointerdown', () => this.setLevel('normal'));
-        const btnHard = this.add.text(width/2 + 80, 490, '[困难]', { color: play.level === 'hard' ? '#ff0000' : '#ffffff' })
-            .setInteractive().on('pointerdown', () => this.setLevel('hard'));
+        const btnEasy   = this.add.text(cx - 90, panelY + 14, '[简单]', { fontSize: '18px', color: play.level === 'simple' ? '#ffdd00' : '#ffffff', fontFamily: 'Zpix, monospace' })
+            .setOrigin(0.5).setInteractive().on('pointerdown', () => this.setLevel('simple'));
+        const btnNormal = this.add.text(cx,      panelY + 14, '[普通]', { fontSize: '18px', color: play.level === 'normal' ? '#ffdd00' : '#ffffff', fontFamily: 'Zpix, monospace' })
+            .setOrigin(0.5).setInteractive().on('pointerdown', () => this.setLevel('normal'));
+        const btnHard   = this.add.text(cx + 90, panelY + 14, '[困难]', { fontSize: '18px', color: play.level === 'hard'   ? '#ffdd00' : '#ffffff', fontFamily: 'Zpix, monospace' })
+            .setOrigin(0.5).setInteractive().on('pointerdown', () => this.setLevel('hard'));
 
         this.settingsGroup.addMultiple([bg, text, btnEasy, btnNormal, btnHard]);
         this.settingsGroup.setVisible(false);

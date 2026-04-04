@@ -259,8 +259,7 @@
         const isRed = key === key.toLowerCase();
 
         const img = this.add.image(0, 0, "chess-piece")
-            .setDisplaySize(sz, sz)
-            .setTint(isRed ? 0xd4603a : 0x3a5c8a);
+            .setDisplaySize(sz, sz);
 
         const charMap = {
             c: { red: "车", black: "車" },
@@ -274,12 +273,13 @@
         const type  = key[0].toLowerCase();
         const label = charMap[type] ? (isRed ? charMap[type].red : charMap[type].black) : type;
 
-        const txt = this.add.text(0, 0, label, {
-            fontSize        : Math.floor(sz * 0.40) + "px",
-            color           : isRed ? "#ffe0b0" : "#b0d8ff",
+        const txt = this.add.text(0, -2, label, {
+            fontSize        : Math.floor(sz * 0.46) + "px",
+            color           : isRed ? "#ff0000" : "#000000",
             fontFamily      : "'Zpix', monospace",
-            stroke          : isRed ? "#7a2a00" : "#001a3a",
-            strokeThickness : 2,
+            fontStyle       : "bold",
+            stroke          : isRed ? "#ff0000" : "#000000",
+            strokeThickness : 1,
             resolution      : 2
         }).setOrigin(0.5, 0.5);
 
@@ -310,8 +310,7 @@
     clearPieceTint(c) {
         if (!c) return;
         const img   = c.getAt(0);
-        const isRed = c.getData("key") === c.getData("key").toLowerCase();
-        if (img) img.setTint(isRed ? 0xd4603a : 0x3a5c8a);
+        if (img) img.clearTint();
     }
 
     selectPiece(piece) {
@@ -329,7 +328,7 @@
             const dot = this.add.circle(
                 this.OFFSET_X + lx * this.CS,
                 this.OFFSET_Y + ly * this.CS,
-                7, 0x00e000, 0.65
+                5, 0x00e000, 0.4
             );
             dot.setInteractive();
             dot.on("pointerdown", () => this.attemptMove(this.selectedPiece, lx, ly));

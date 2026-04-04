@@ -70,6 +70,7 @@
         this.initChessData();
         this.initChessPieces();
         this.createUndoButton();
+        this.createMuteButton();
     }
 
     drawBoard(boardX, boardY, boardW, boardH) {
@@ -195,6 +196,34 @@
         btnBg.on("pointerover", () => btnBg.setFillStyle(0x8a4a1a));
         btnBg.on("pointerout",  () => btnBg.setFillStyle(0x5c3010));
         btnBg.on("pointerdown", () => this.undo());
+    }
+
+    createMuteButton() {
+        const x = this.SCENE_W - 28;
+        const y = 28;
+        const size = 36;
+
+        // 按钮背景
+        const btnBg = this.add.circle(x, y, size / 2, 0x000000, 0.35);
+
+        // 音符图标（未静音）/ 禁音图标（静音）
+        const icon = this.add.text(x, y,
+            audioConfig.muted ? '🔇' : '🔊',
+            { fontSize: '18px', resolution: 2 }
+        ).setOrigin(0.5);
+
+        // 交互区域
+        const hitArea = this.add.circle(x, y, size / 2, 0xffffff, 0)
+            .setInteractive({ useHandCursor: true });
+
+        hitArea.on('pointerover', () => btnBg.setFillStyle(0x000000, 0.55));
+        hitArea.on('pointerout',  () => btnBg.setFillStyle(0x000000, 0.35));
+        hitArea.on('pointerdown', () => {
+            audioConfig.muted = !audioConfig.muted;
+            icon.setText(audioConfig.muted ? '🔇' : '🔊');
+            const bgm = this.sound.get('bgm');
+            if (bgm) bgm.setVolume(audioConfig.muted ? 0 : audioConfig.bgmVolume);
+        });
     }
 
     undo() {

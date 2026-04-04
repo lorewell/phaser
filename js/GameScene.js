@@ -114,9 +114,12 @@
 
         // 5. 楚河汉界文字（行 4~5 之间，高度 = CS）
         const riverStyle = {
-            fontSize   : Math.floor(CS * 0.50) + "px",
+            fontSize   : Math.floor(this.PIECE_SIZE * 0.48) + "px",
             color      : "#5c3010",
             fontFamily : "'Zpix', monospace",
+            fontStyle  : "bold",
+            stroke     : "#5c3010",
+            strokeThickness : 1,
             resolution : 2
         };
         const riverY = OFFSET_Y + 4 * CS;

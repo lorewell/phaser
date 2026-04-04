@@ -5,7 +5,7 @@ class MenuScene extends Phaser.Scene {
 
     create() {
         this.cameras.main.setBackgroundColor('#2c1e14');
-        
+
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         const cx = width / 2;
@@ -19,15 +19,17 @@ class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // 菜单选项：从 40% 高度开始，每项间距 10%
-        this.createMenuItem(cx, height * 0.40, '本地双人对战', () => {
+
+        this.createMenuItem(cx, height * 0.40, '玩家对战电脑', () => {
+            play.mode = 'player_vs_ai';
+            this.scene.start('GameScene');
+        });
+
+        this.createMenuItem(cx, height * 0.50, '本地双人对战', () => {
             play.mode = 'player_vs_player';
             this.scene.start('GameScene');
         });
 
-        this.createMenuItem(cx, height * 0.50, '玩家对战电脑', () => {
-            play.mode = 'player_vs_ai';
-            this.scene.start('GameScene');
-        });
 
         this.createMenuItem(cx, height * 0.60, '游戏设置 (难度)', () => {
             this.toggleSettings();
@@ -65,11 +67,11 @@ class MenuScene extends Phaser.Scene {
             fontFamily: 'Zpix, monospace'
         }).setOrigin(0.5);
 
-        const btnEasy   = this.add.text(cx - 90, panelY + 14, '[简单]', { fontSize: '18px', color: play.level === 'simple' ? '#ffdd00' : '#ffffff', fontFamily: 'Zpix, monospace' })
+        const btnEasy = this.add.text(cx - 90, panelY + 14, '[简单]', { fontSize: '18px', color: play.level === 'simple' ? '#ffdd00' : '#ffffff', fontFamily: 'Zpix, monospace' })
             .setOrigin(0.5).setInteractive().on('pointerdown', () => this.setLevel('simple'));
-        const btnNormal = this.add.text(cx,      panelY + 14, '[普通]', { fontSize: '18px', color: play.level === 'normal' ? '#ffdd00' : '#ffffff', fontFamily: 'Zpix, monospace' })
+        const btnNormal = this.add.text(cx, panelY + 14, '[普通]', { fontSize: '18px', color: play.level === 'normal' ? '#ffdd00' : '#ffffff', fontFamily: 'Zpix, monospace' })
             .setOrigin(0.5).setInteractive().on('pointerdown', () => this.setLevel('normal'));
-        const btnHard   = this.add.text(cx + 90, panelY + 14, '[困难]', { fontSize: '18px', color: play.level === 'hard'   ? '#ffdd00' : '#ffffff', fontFamily: 'Zpix, monospace' })
+        const btnHard = this.add.text(cx + 90, panelY + 14, '[困难]', { fontSize: '18px', color: play.level === 'hard' ? '#ffdd00' : '#ffffff', fontFamily: 'Zpix, monospace' })
             .setOrigin(0.5).setInteractive().on('pointerdown', () => this.setLevel('hard'));
 
         this.settingsGroup.addMultiple([bg, text, btnEasy, btnNormal, btnHard]);

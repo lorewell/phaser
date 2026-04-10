@@ -1,26 +1,42 @@
 <div class="select-container">
-  <h2>选择你的角色</h2>
+  <h2 id="select-title">选择你的角色</h2>
   
   <div class="main-content">
     <div class="char-grid">
-      <div class="char-card" data-id="swift">
-        <div class="avatar" style="background: #3d9be9; border-color: #1a6ab3;"></div>
-        <div class="name">疾风骑士</div>
+      <div class="char-card" data-id="furenke">
+        <div class="avatar-container">
+          <img class="char-img" src="./assets/characters/furenke.png">
+          <div class="player-tag p1">P1</div>
+          <div class="player-tag p2">P2</div>
+        </div>
+        <div class="name">妇人科</div>
         <div class="role">高机动 / 连击</div>
       </div>
-      <div class="char-card" data-id="tank">
-        <div class="avatar" style="background: #e94b3d; border-color: #b32a1a;"></div>
-        <div class="name">重装守卫</div>
+      <div class="char-card" data-id="wuzhuzhu">
+        <div class="avatar-container">
+          <img class="char-img" src="./assets/characters/wuzhuzhu.png">
+          <div class="player-tag p1">P1</div>
+          <div class="player-tag p2">P2</div>
+        </div>
+        <div class="name">吴猪猪</div>
         <div class="role">高生存 / 霸体</div>
       </div>
-      <div class="char-card" data-id="shadow">
-        <div class="avatar" style="background: #9b3de9; border-color: #6a1ab3;"></div>
-        <div class="name">暗影刺客</div>
+      <div class="char-card" data-id="chengtailang">
+        <div class="avatar-container">
+          <img class="char-img" src="./assets/characters/chengtailang.png">
+          <div class="player-tag p1">P1</div>
+          <div class="player-tag p2">P2</div>
+        </div>
+        <div class="name">承太郎</div>
         <div class="role">高爆发 / 瞬移</div>
       </div>
-      <div class="char-card" data-id="sniper">
-        <div class="avatar" style="background: #3de97a; border-color: #1ab34e;"></div>
-        <div class="name">秘法射手</div>
+      <div class="char-card" data-id="gebulin">
+        <div class="avatar-container">
+          <img class="char-img" src="./assets/characters/gebulin.png">
+          <div class="player-tag p1">P1</div>
+          <div class="player-tag p2">P2</div>
+        </div>
+        <div class="name">哥布林</div>
         <div class="role">远程 / 牵制</div>
       </div>
     </div>
@@ -76,8 +92,42 @@
   }
   .char-card:hover { border-color: #f5c518; background: #3d3d5c; }
   .char-card.selected { border-color: #f5c518; background: #4d4d6c; box-shadow: 0 0 10px #f5c518; }
+  .char-card.disabled { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
   
-  .avatar { width: 60px; height: 60px; margin: 0 auto 10px; border: 2px solid; }
+  .avatar-container { 
+    width: 60px; 
+    height: 60px; 
+    margin: 0 auto 10px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .player-tag {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    padding: 2px 4px;
+    font-size: 10px;
+    font-weight: bold;
+    border-radius: 3px;
+    color: white;
+    display: none;
+  }
+  .player-tag.p1 { background: #3d9be9; right: 2px; left: auto; }
+  .player-tag.p2 { background: #e94f3d; left: 2px; right: auto; }
+  .selected-p1 .p1 { display: block; }
+  .selected-p2 .p2 { display: block; }
+
+  .char-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
   .name { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
   .role { font-size: 10px; color: #aaaaaa; }
 

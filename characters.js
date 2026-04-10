@@ -11,31 +11,32 @@ const ATTACK_TYPE = {
 };
 
 const CHARACTERS = {
-  // ========== 角色1：疾风 ==========
+  // ========== 角色1：妇人科 ==========
   // 定位：高速游击，近战爆发
-  swift: {
-    id: 'swift',
-    name: '疾风',
+  furenke: {
+    id: 'furenke',
+    name: '妇人科',
     description: '速度极快，来去如风，擅长贴身缠斗',
     // 外观
+    image: './assets/characters/furenke.png',
     fillColor: 0x3d9be9,   // 蓝色
     strokeColor: 0x1a5fa8,
     // 基础属性（平衡总分：速度+血量=420）
-    maxHp: 90,             // 较低血量
+    maxHp: 220,             // 较低血量
     speed: 330,            // 最高速度
-    size: 48,              // 较小体型
+    size: 80,             // 增大体型
     // 进攻手段：快速连击
     attack: {
       type: ATTACK_TYPE.MELEE,
       name: '疾风连击',
       description: '贴身快速攻击，伤害较低但频率高',
-      damage: 8,             // 单次伤害低
+      damage: 30,             // 单次伤害低
       cooldown: 0.4,         // 冷却短（高频）
       range: 60,             // 近战范围
       // 特殊：连续命中叠加伤害
       combo: {
         maxStacks: 3,
-        bonusPerStack: 4,    // 每层+4伤害
+        bonusPerStack: 5,    // 每层+5伤害
       }
     },
     // 大招：时间断裂
@@ -57,19 +58,20 @@ const CHARACTERS = {
     }
   },
 
-  // ========== 角色2：铁壁 ==========
-  // 定位：肉盾坦克，近战反伤
-  tank: {
-    id: 'tank',
-    name: '铁壁',
-    description: '血量厚实，坚不可摧，擅长防守反击',
+  // ========== 角色2：吴猪猪==========
+  // 定位：法师，远程输出，控制能力强
+  wuzhuzhu: {
+    id: 'wuzhuzhu',
+    name: '吴猪猪',
+    description: '身披重甲，防御惊人，受击时会反弹伤害',
     // 外观
+    image: './assets/characters/wuzhuzhu.png',
     fillColor: 0xe94f3d,   // 红色
     strokeColor: 0xa82010,
     // 基础属性（平衡总分：速度+血量=420）
-    maxHp: 180,            // 最高血量
+    maxHp: 250,            // 最高血量
     speed: 140,            // 最慢速度
-    size: 62,              // 最大体型
+    size: 90,             // 增大体型
     // 进攻手段：反震冲击
     attack: {
       type: ATTACK_TYPE.AURA,
@@ -102,19 +104,20 @@ const CHARACTERS = {
     }
   },
 
-  // ========== 角色3：影刃 ==========
-  // 定位：刺客型，冲锋爆发
-  shadow: {
-    id: 'shadow',
-    name: '影刃',
-    description: '神出鬼没，一击必杀，擅长突袭',
+  // ========== 角色3：承太郎 ==========
+  // 定位：刺客，高爆发，能够瞬间突进
+  chengtailang: {
+    id: 'chengtailang',
+    name: '承太郎',
+    description: '潜伏在阴影中，擅长瞬间接近对手并造成致命打击',
     // 外观
-    fillColor: 0x8b5cf6,   // 紫色
+    image: './assets/characters/chengtailang.png',
+    fillColor: 0x9b3de9,   // 紫色
     strokeColor: 0x5b21b6,
     // 基础属性（平衡总分：速度+血量=420）
-    maxHp: 110,            // 中等偏低血量
+    maxHp: 230,            // 中等偏低血量
     speed: 280,            // 高速
-    size: 50,              // 标准体型
+    size: 80,              // 增大体型
     // 进攻手段：暗影冲锋
     attack: {
       type: ATTACK_TYPE.CHARGE,
@@ -148,26 +151,27 @@ const CHARACTERS = {
     }
   },
 
-  // ========== 角色4：神射 ==========
-  // 定位：远程输出，保持距离
-  sniper: {
-    id: 'sniper',
-    name: '神射',
-    description: '百步穿杨，远程狙击，擅长风筝战术',
+  // ========== 角色4：哥布林 ==========
+  // 定位：射手，远程牵制，距离越远伤害越高
+  gebulin: {
+    id: 'gebulin',
+    name: '哥布林',
+    description: '精通远程攻击，能够通过拉开距离消磨对手生命',
     // 外观
-    fillColor: 0x22c55e,   // 绿色
+    image: './assets/characters/gebulin.png',
+    fillColor: 0x3de97a,   // 绿色
     strokeColor: 0x15803d,
     // 基础属性（平衡总分：速度+血量=420）
-    maxHp: 120,            // 中等血量
+    maxHp: 230,            // 中等血量
     speed: 200,            // 中等速度
-    size: 52,              // 略大
+    size: 80,             // 增大体型
     // 进攻手段：精准射击
     attack: {
       type: ATTACK_TYPE.RANGED,
       name: '精准射击',
       description: '发射远程投射物，距离越远伤害越高',
       damage: 15,            // 基础伤害
-      cooldown: 0.8,         // 中等冷却
+      cooldown: 1,         // 中等冷却
       range: 250,            // 射程
       // 特殊：距离加成
       distanceBonus: {

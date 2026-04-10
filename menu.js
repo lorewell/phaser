@@ -29,5 +29,12 @@ class MenuScene extends Phaser.Scene {
         this.scene.start('CharacterSelectScene', { mode: 'pve' });
       });
     }
+
+    const pvpBtn = menu.getChildByID('pvp-btn');
+    if (pvpBtn) {
+      pvpBtn.addEventListener('click', () => {
+        this.scene.start('CharacterSelectScene', { mode: 'pvp' });
+      });
+    }
   }
 }

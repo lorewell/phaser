@@ -6,9 +6,9 @@ const CANVAS_W = 600;
 const CANVAS_H = 600;
 
 // 擂台参数
-const ARENA_X = 80;
-const ARENA_Y = 100;
-const ARENA_SIZE = 440;
+const ARENA_X = 50;
+const ARENA_Y = 60;
+const ARENA_SIZE = 500;
 
 // 血条尺寸
 const HP_BAR_W = 140;
@@ -17,6 +17,15 @@ const HP_BAR_H = 14;
 class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
+  }
+
+  preload() {
+    // 自动遍历所有角色的图片并预加载
+    Object.values(CHARACTERS).forEach(char => {
+      if (char.image) {
+        this.load.image(`char_img_${char.id}`, char.image);
+      }
+    });
   }
 
   init(data) {
@@ -35,21 +44,25 @@ class GameScene extends Phaser.Scene {
     this.char2 = char2;
 
     // ---------- 背景 ----------
-    this.cameras.main.setBackgroundColor('#f5f5f5');
+    // 移除原本的实色背景，改为透明
+    this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
 
     // ---------- 擂台 ----------
     const arena = this.add.graphics();
-    arena.fillStyle(0xffffff, 1);
+    // 将擂台颜色也调成半透明，这样能隐约看到后面的背景图，更有层次感
+    arena.fillStyle(0xffffff, 0.4); 
     arena.fillRect(ARENA_X, ARENA_Y, ARENA_SIZE, ARENA_SIZE);
-    arena.lineStyle(3, 0x333333, 1);
+    arena.lineStyle(3, 0xffffff, 0.8); // 边框用白色更显眼
     arena.strokeRect(ARENA_X, ARENA_Y, ARENA_SIZE, ARENA_SIZE);
 
     // ---------- 标题 ----------
     this.add.text(CANVAS_W / 2, 50, `${char1.name} VS ${char2.name}`, {
-      fontSize: '22px',
+      fontSize: '28px',
       fontFamily: 'Arial, sans-serif',
-      color: '#333333',
+      color: '#ffffff',
       fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 6
     }).setOrigin(0.5, 0.5);
 
     // 返回菜单按钮
@@ -73,7 +86,7 @@ class GameScene extends Phaser.Scene {
       ARENA_Y + ARENA_SIZE * 0.5,
       char2,
       'C',
-      false  // 是电脑控制
+      this.gameMode === 'pvp' // 如果是 PVP 模式，P2 也是玩家控制（虽然目前是 AI 逻辑，但界面可以区分）
     );
 
     // 赋予随机初速度
@@ -102,6 +115,9 @@ class GameScene extends Phaser.Scene {
 
     // ---------- 伤害数字 ----------
     this.damageTexts = [];
+
+    // ---------- 子弹组 ----------
+    this.bullets = this.add.group();
 
     // ---------- 游戏结束状态 ----------
     this.gameOver = false;
@@ -138,35 +154,26 @@ class GameScene extends Phaser.Scene {
   createPlayer(x, y, char, label, isPlayer) {
     const container = this.add.container(x, y);
 
-    // 身体
-    const body = this.add.graphics();
-    body.fillStyle(char.fillColor, 1);
-    body.fillRect(-char.size / 2, -char.size / 2, char.size, char.size);
-    body.lineStyle(2, char.strokeColor, 1);
-    body.strokeRect(-char.size / 2, -char.size / 2, char.size, char.size);
-
-    // 标签（P=玩家，C=电脑）
-    const text = this.add.text(0, 0, label, {
-      fontSize: '16px',
-      fontFamily: 'Arial',
-      fontStyle: 'bold',
-      color: '#ffffff',
-    }).setOrigin(0.5, 0.5);
+    // 直接使用角色配置中的图片
+    const body = this.add.image(0, 0, `char_img_${char.id}`);
+    body.setDisplaySize(char.size, char.size);
 
     // 角色名（头顶）
     const nameText = this.add.text(0, -char.size / 2 - 12, char.name, {
       fontSize: '11px',
       fontFamily: 'Arial',
-      color: '#' + char.fillColor.toString(16).padStart(6, '0'),
-      fontStyle: 'bold'
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2
     }).setOrigin(0.5, 0.5);
 
-    container.add([body, text, nameText]);
+    container.add([body, nameText]);
 
     container.vx = 0;
     container.vy = 0;
     container.char = char;
-    container.bodyGraphics = body;
+    container.bodyGraphics = body; 
     container.isPlayer = isPlayer;
 
     return container;
@@ -286,6 +293,9 @@ class GameScene extends Phaser.Scene {
     // 移动
     this.movePlayer(this.player1, dt);
     this.movePlayer(this.player2, dt);
+
+    // 更新子弹
+    this.updateBullets(dt);
 
     // 碰撞检测
     this.checkPlayerCollision();
@@ -478,18 +488,81 @@ class GameScene extends Phaser.Scene {
         break;
 
       case ATTACK_TYPE.RANGED:
-        if (dist <= attack.range) {
-          let damage = attack.damage;
-          if (attack.distanceBonus) {
-            const bonusRatio = Math.min(dist / attack.distanceBonus.optimalDistance, 1);
-            damage += attack.distanceBonus.maxBonus * bonusRatio;
-          }
-          this.dealDamage(attacker, target, damage);
-          attacker.attackCooldown = attack.cooldown;
-          this.showShotLine(attacker.x, attacker.y, target.x, target.y);
-        }
+        // 远程攻击：只要冷却好了就发射，不再受距离(range)限制导致的“哑火”
+        this.shootBullet(attacker, target);
+        attacker.attackCooldown = attack.cooldown;
         break;
     }
+  }
+
+  shootBullet(attacker, target) {
+    const attack = attacker.char.attack;
+    
+    // 创建一个黑色长方形作为子弹
+    const bullet = this.add.graphics();
+    bullet.fillStyle(0x000000, 1);
+    bullet.fillRect(-6, -2, 12, 4); // 长12，宽4
+    
+    // 给子弹添加一些属性
+    bullet.x = attacker.x;
+    bullet.y = attacker.y;
+    
+    // 计算指向目标的向量
+    const dx = target.x - attacker.x;
+    const dy = target.y - attacker.y;
+    const angle = Math.atan2(dy, dx);
+    bullet.rotation = angle;
+
+    const speed = attack.projectileSpeed || 400;
+    bullet.vx = Math.cos(angle) * speed;
+    bullet.vy = Math.sin(angle) * speed;
+    bullet.damage = attack.damage;
+    bullet.attacker = attacker;
+    bullet.target = target;
+    bullet.life = 2.0; // 子弹生存时间
+
+    this.bullets.add(bullet);
+  }
+
+  updateBullets(dt) {
+    this.bullets.getChildren().forEach(bullet => {
+      // 获取当前速度
+      const vx = bullet.vx;
+      const vy = bullet.vy;
+      
+      bullet.x += vx * dt;
+      bullet.y += vy * dt;
+      bullet.life -= dt;
+
+      // 碰撞检测：子弹与目标
+      const dx = bullet.target.x - bullet.x;
+      const dy = bullet.target.y - bullet.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < bullet.target.char.size / 2) {
+        // 命中
+        let finalDamage = bullet.damage;
+        // 计算距离加成（如果配置里有）
+        if (bullet.attacker.char.attack.distanceBonus) {
+           const launchDx = bullet.x - bullet.attacker.x;
+           const launchDy = bullet.y - bullet.attacker.y;
+           const traveled = Math.sqrt(launchDx * launchDx + launchDy * launchDy);
+           const bonusRatio = Math.min(traveled / bullet.attacker.char.attack.distanceBonus.optimalDistance, 1);
+           finalDamage += bullet.attacker.char.attack.distanceBonus.maxBonus * bonusRatio;
+        }
+
+        this.dealDamage(bullet.attacker, bullet.target, finalDamage);
+        bullet.destroy();
+        return;
+      }
+
+      // 越界或生存时间结束
+      if (bullet.life <= 0 || 
+          bullet.x < ARENA_X || bullet.x > ARENA_X + ARENA_SIZE ||
+          bullet.y < ARENA_Y || bullet.y > ARENA_Y + ARENA_SIZE) {
+        bullet.destroy();
+      }
+    });
   }
 
   dealDamage(attacker, target, damage, isReflect = false) {
@@ -530,16 +603,10 @@ class GameScene extends Phaser.Scene {
   }
 
   flashPlayer(player) {
-    player.bodyGraphics.clear();
-    player.bodyGraphics.fillStyle(0xffffff, 1);
-    player.bodyGraphics.fillRect(-player.char.size / 2, -player.char.size / 2, player.char.size, player.char.size);
+    player.bodyGraphics.setTint(0xffffff);
 
     this.time.delayedCall(80, () => {
-      player.bodyGraphics.clear();
-      player.bodyGraphics.fillStyle(player.char.fillColor, 1);
-      player.bodyGraphics.fillRect(-player.char.size / 2, -player.char.size / 2, player.char.size, player.char.size);
-      player.bodyGraphics.lineStyle(2, player.char.strokeColor, 1);
-      player.bodyGraphics.strokeRect(-player.char.size / 2, -player.char.size / 2, player.char.size, player.char.size);
+      player.bodyGraphics.clearTint();
     });
   }
 

@@ -3,7 +3,7 @@
 // =============================================
 
 const CANVAS_W = 600;
-const CANVAS_H = 680;
+const CANVAS_H = 600;
 
 // 擂台参数
 const ARENA_X = 80;
@@ -637,12 +637,15 @@ const config = {
   type: Phaser.AUTO,
   width: CANVAS_W,
   height: CANVAS_H,
-  backgroundColor: '#1a1a2e',
+  transparent: true, // 开启透明，允许看到底层的 HTML 背景或图片
   scene: [MenuScene, CharacterSelectScene, GameScene],
   parent: document.body,
   antialias: true,
   pixelArt: false,
   roundPixels: true,
+  dom: {
+    createContainer: true
+  },
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

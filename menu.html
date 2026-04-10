@@ -1,0 +1,221 @@
+<div class="menu-container">
+    <!-- 顶部标题区域 -->
+    <div class="header-box">
+        <h1>⚔ 擂台对战 ⚔</h1>
+        <div class="divider"></div>
+        <p class="subtitle">ARENA FIGHTER</p>
+    </div>
+
+    <!-- 按钮区域 -->
+    <div class="button-list">
+        <!-- 本地单人按钮 -->
+        <div class="menu-btn-border" id="pve-btn">
+            <button class="menu-btn blue">
+                <div class="btn-icon"><img src="./assets/one.png" style="width: 50px;"></div>
+                <div class="btn-content">
+                    <span class="btn-title">本地单人</span>
+                    <span class="btn-desc">开始一个人的擂台磨炼之旅。</span>
+                </div>
+            </button>
+        </div>
+
+        <!-- 本地双人按钮 (暂位) -->
+        <div class="menu-btn-border" id="pvp-btn">
+            <button class="menu-btn red">
+                <div class="btn-icon"><img src="./assets/two.png" style="width: 80px;"></div>
+                <div class="btn-content">
+                    <span class="btn-title">本地双人</span>
+                    <span class="btn-desc">与好友在同一台设备上联手冒险。</span>
+                </div>
+            </button>
+        </div>
+
+        <!-- 联网游戏按钮 (占位) -->
+        <div class="menu-btn-border" id="online-btn">
+            <button class="menu-btn yellow">
+                <div class="btn-icon"><img src="./assets/three.png" style="width: 70px;"></div>
+                <div class="btn-content">
+                    <span class="btn-title">联网游戏</span>
+                    <span class="btn-desc">加入在线服务器，与世界各地的玩家作战。</span>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- 底部状态栏 -->
+    <div class="footer-bar">
+        <div class="version-info">Ver. 1.0.0 | Time: 12:00 | Server: ON</div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --blue-bg: #5c8cba;
+        --blue-border: #8cc7ea;
+        --red-bg: #bd5251;
+        --red-border: #f68987;
+        --yellow-bg: #dbab40;
+        --yellow-border: #f6e373;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    .menu-container {
+        width: 600px;
+        height: 680px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: white;
+        font-family: 'Microsoft YaHei', sans-serif;
+        padding: 60px 20px;
+        position: relative;
+        overflow: hidden;
+        background: transparent;
+        /* 关键：设置为透明，露出 Canvas 背景图 */
+    }
+
+    /* 标题样式 */
+    .header-box {
+        border: 4px solid #000; /* 加厚黑色外边框 */
+        padding: 15px 50px;
+        text-align: center;
+        border-radius: 4px;
+        margin-bottom: 50px;
+        background: rgba(255, 255, 255, 0.4); /* 增加背景不透明度，让文字更突出 */
+        box-shadow: 0 0 10px rgba(0,0,0,0.5); /* 添加阴影增强立体感 */
+    }
+
+    h1 {
+        font-size: 36px;
+        margin: 0;
+        letter-spacing: 4px;
+        color: #fff;
+        text-shadow: 
+            -2px -2px 0 #000,  
+             2px -2px 0 #000,
+            -2px  2px 0 #000,
+             2px  2px 0 #000,
+             0px  4px 4px rgba(0,0,0,0.8); /* 关键：给字体添加全方位黑色描边 */
+    }
+
+    .divider {
+        height: 2px;
+        background: #000; /* 分割线改为黑色 */
+        margin: 8px 0;
+    }
+
+    .subtitle {
+        font-size: 14px;
+        margin: 0;
+        color: #fff; /* 副标题改为白色并添加描边 */
+        letter-spacing: 6px;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px #000;
+    }
+
+    /* 按钮列表样式 */
+    .button-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        align-items: center;
+    }
+
+    .menu-btn-border {
+        padding: 1px;
+        background-color: black;
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .menu-btn-border:hover {
+        transform: scale(1.03);
+        filter: brightness(1.1);
+    }
+
+    .menu-btn {
+        width: 360px;
+        height: 90px;
+        display: flex;
+        align-items: center;
+        padding: 0 25px;
+        border-radius: 12px;
+        border: 6px solid #333;
+        cursor: pointer;
+        transition: transform 0.1s, filter 0.2s;
+        text-align: left;
+        position: relative;
+    }
+
+    .menu-btn .btn-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        margin-right: 20px;
+        width: 50px;
+        text-align: center;
+        filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+    }
+
+    .btn-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .btn-title {
+        font-size: 24px;
+        font-weight: 800;
+        color: #333;
+        line-height: 1.2;
+    }
+
+    .btn-desc {
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.5);
+        margin-top: 2px;
+        font-weight: 600;
+    }
+
+    /* 颜色变体 */
+    .blue {
+        background-color: var(--blue-bg);
+        border-color: var(--blue-border);
+    }
+
+    .red {
+        background-color: var(--red-bg);
+        border-color: var(--red-border);
+    }
+
+    .yellow {
+        background-color: var(--yellow-bg);
+        border-color: var(--yellow-border);
+    }
+
+    /* 底部栏 */
+    .footer-bar {
+        position: absolute;
+        bottom: 20px;
+        width: 100%;
+        padding: 0 30px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: bold;
+    }
+
+    .system-btns {
+        display: flex;
+        gap: 20px;
+    }
+</style>

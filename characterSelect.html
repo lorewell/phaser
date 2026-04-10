@@ -1,0 +1,108 @@
+<div class="select-container">
+  <h2>选择你的角色</h2>
+  
+  <div class="main-content">
+    <div class="char-grid">
+      <div class="char-card" data-id="swift">
+        <div class="avatar" style="background: #3d9be9; border-color: #1a6ab3;"></div>
+        <div class="name">疾风骑士</div>
+        <div class="role">高机动 / 连击</div>
+      </div>
+      <div class="char-card" data-id="tank">
+        <div class="avatar" style="background: #e94b3d; border-color: #b32a1a;"></div>
+        <div class="name">重装守卫</div>
+        <div class="role">高生存 / 霸体</div>
+      </div>
+      <div class="char-card" data-id="shadow">
+        <div class="avatar" style="background: #9b3de9; border-color: #6a1ab3;"></div>
+        <div class="name">暗影刺客</div>
+        <div class="role">高爆发 / 瞬移</div>
+      </div>
+      <div class="char-card" data-id="sniper">
+        <div class="avatar" style="background: #3de97a; border-color: #1ab34e;"></div>
+        <div class="name">秘法射手</div>
+        <div class="role">远程 / 牵制</div>
+      </div>
+    </div>
+    
+    <div class="detail-panel">
+      <div id="detail-content">
+        <p>请悬停查看详情</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button id="back-btn" class="footer-btn">返回</button>
+    <button id="start-btn" class="footer-btn start-btn" disabled>进入战斗</button>
+  </div>
+</div>
+
+<style>
+  .select-container {
+    width: 100%;
+    height: 100%;
+    color: white;
+    font-family: 'Arial', sans-serif;
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+  h2 {
+    text-align: center;
+    color: #f5c518;
+    margin-bottom: 20px;
+  }
+  .main-content {
+    display: flex;
+    gap: 20px;
+    flex: 1;
+  }
+  .char-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 320px;
+  }
+  .char-card {
+    background: #2d2d44;
+    border: 2px solid #444466;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .char-card:hover { border-color: #f5c518; background: #3d3d5c; }
+  .char-card.selected { border-color: #f5c518; background: #4d4d6c; box-shadow: 0 0 10px #f5c518; }
+  
+  .avatar { width: 60px; height: 60px; margin: 0 auto 10px; border: 2px solid; }
+  .name { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+  .role { font-size: 10px; color: #aaaaaa; }
+
+  .detail-panel {
+    flex: 1;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 13px;
+    border: 1px solid #333;
+  }
+  .footer {
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    align-items: center;
+  }
+  .footer-btn {
+    padding: 10px 30px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .start-btn { background: #f5c518; color: #1a1a2e; }
+  .start-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+</style>

@@ -1,5 +1,5 @@
 // =============================================
-//  角色配置 - 4个平衡角色 + 进攻手段系统
+//  角色配置 - 4个平衡角色 + 进攻手段 + 大招系统
 // =============================================
 
 // 进攻手段类型
@@ -37,6 +37,23 @@ const CHARACTERS = {
         maxStacks: 3,
         bonusPerStack: 4,    // 每层+4伤害
       }
+    },
+    // 大招：时间断裂
+    ultimate: {
+      name: '时间断裂',
+      description: '进入子弹时间，自身速度翻倍，敌人速度减半，持续3秒',
+      // 蓄力需求
+      maxEnergy: 100,
+      // 被动充能（每秒）
+      passiveCharge: 3,
+      // 造成伤害充能比例（造成伤害的X%转化为能量）
+      damageDealtCharge: 0.8,  // 造成100伤害充能80
+      // 受到伤害充能比例（受到伤害的X%转化为能量）
+      damageTakenCharge: 1.2,  // 受到100伤害充能120（挨打充能更快）
+      // 效果
+      duration: 3000,          // 持续3秒
+      selfSpeedMultiplier: 2.0,  // 自身加速
+      enemySpeedMultiplier: 0.5  // 敌人减速
     }
   },
 
@@ -65,6 +82,23 @@ const CHARACTERS = {
       passive: {
         reflectPercent: 0.25 // 反弹25%受到伤害
       }
+    },
+    // 大招：绝对防御
+    ultimate: {
+      name: '绝对防御',
+      description: '获得护盾，免疫所有伤害，反弹200%伤害，持续4秒',
+      // 蓄力需求
+      maxEnergy: 120,          // 坦克需要更多能量（因为挨打多，充能快）
+      // 被动充能（每秒）
+      passiveCharge: 2,
+      // 造成伤害充能比例
+      damageDealtCharge: 0.5,
+      // 受到伤害充能比例（坦克挨打多，这个高）
+      damageTakenCharge: 1.5,  // 受到100伤害充能150
+      // 效果
+      duration: 4000,
+      damageReduction: 1.0,    // 100%减伤（无敌）
+      reflectMultiplier: 2.0   // 反弹200%
     }
   },
 
@@ -93,6 +127,24 @@ const CHARACTERS = {
       invincibleDuringCharge: true,
       // 冲锋速度倍率
       speedMultiplier: 2.5
+    },
+    // 大招：暗影分身
+    ultimate: {
+      name: '暗影分身',
+      description: '召唤2个分身，分身会模仿本体攻击，持续5秒',
+      // 蓄力需求
+      maxEnergy: 100,
+      // 被动充能（每秒）
+      passiveCharge: 2.5,
+      // 造成伤害充能比例（刺客靠输出充能）
+      damageDealtCharge: 1.0,  // 造成100伤害充能100
+      // 受到伤害充能比例
+      damageTakenCharge: 0.8,
+      // 效果
+      duration: 5000,
+      cloneCount: 2,           // 2个分身
+      cloneDamagePercent: 0.4, // 分身造成40%伤害
+      cloneHpPercent: 0.3      // 分身有30%血量（被摸一下就死）
     }
   },
 
@@ -124,6 +176,24 @@ const CHARACTERS = {
       },
       // 投射物速度
       projectileSpeed: 400
+    },
+    // 大招：箭雨风暴
+    ultimate: {
+      name: '箭雨风暴',
+      description: '向天空发射箭雨，3秒内持续对全擂台随机位置造成范围伤害',
+      // 蓄力需求
+      maxEnergy: 100,
+      // 被动充能（每秒）
+      passiveCharge: 2,
+      // 造成伤害充能比例
+      damageDealtCharge: 0.9,
+      // 受到伤害充能比例
+      damageTakenCharge: 1.0,
+      // 效果
+      duration: 3000,          // 3秒持续
+      arrowCount: 15,          // 总共15支箭
+      damagePerArrow: 20,      // 每支箭伤害
+      explosionRadius: 60      // 爆炸范围
     }
   },
 };
@@ -133,6 +203,12 @@ const CHARACTERS = {
 // 铁壁: 180HP + 140速 = 420 | 低频反伤，站桩输出
 // 影刃: 110HP + 280速 = 420 | 长CD爆发，需要找准时机
 // 神射: 120HP + 200速 = 420 | 中频中伤，需要保持距离
+
+// 大招充能平衡：
+// 疾风：时间断裂 - 控制型，需要频繁使用，充能较快（挨打1.2倍）
+// 铁壁：绝对防御 - 保命型，需要较多能量但挨打充能快（1.5倍）
+// 影刃：暗影分身 - 爆发型，靠输出充能（1.0倍）
+// 神射：箭雨风暴 - 范围型，平衡充能
 
 // 默认角色选择
 const DEFAULT_PLAYER1_CHAR = 'swift';

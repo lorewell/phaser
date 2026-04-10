@@ -640,10 +640,14 @@ const config = {
   backgroundColor: '#1a1a2e',
   scene: [MenuScene, CharacterSelectScene, GameScene],
   parent: document.body,
+  antialias: true,
+  pixelArt: false,
+  roundPixels: true,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
+  resolution: window.devicePixelRatio || 1,
 };
 
 new Phaser.Game(config);

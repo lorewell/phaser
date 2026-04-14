@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "sessions": {
+    "3d93bdd05ae54684a1b90fb6d18abd6d": [
+      {
+        "expertId": "GameDesigner",
+        "name": "Dale",
+        "profession": "游戏设计师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/12-GameDevelopment/GameDesigner/GameDesigner.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/12-GameDevelopment/GameDesigner/GameDesigner_zh.md",
+        "usedAt": 1776137108346,
+        "industryId": "all"
+      }
+    ]
+  },
+  "lastUpdated": 1776137255422
+}

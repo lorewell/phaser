@@ -1,7 +1,87 @@
 // ==========================================
-// 【游戏主场景】v0.3 - Roguelike + 流派联动 + 圣遗物 + 事件波次
+// 【游戏主场景】v0.4 - Combo + 道具系统 + 粘球瞄准 + 视觉增强
 // ==========================================
 import { loadSettings, BALL_SPEED, DIFFICULTY } from '../settings.js';
+
+// ──────────────────────────────────────────
+// 道具库（击杀砖块概率掉落，时效性buff）
+// ──────────────────────────────────────────
+const POWERUPS = [
+    {
+        id: 'expand',
+        name: '扩展',
+        icon: '⇔',
+        color: 0x00ff88,
+        duration: 12000,
+        apply(scene) {
+            scene.player.unitWidth = Math.min(scene.player.unitWidth + 60, 200);
+            scene.updatePaddleVisual();
+            scene.hudPowerupIcon = scene.add.text(scene.scale.width / 2 - 40, 20, POWERUPS[0].icon, {
+                fontSize: '20px', color: '#00ff88'
+            }).setDepth(25);
+        },
+        remove(scene) {
+            scene.player.unitWidth = Math.max(scene.player.unitWidth - 60, 80);
+            scene.updatePaddleVisual();
+        }
+    },
+    {
+        id: 'multiball',
+        name: '多球',
+        icon: '◉◉',
+        color: 0xaa44ff,
+        duration: 0, // 永久到球丢失
+        apply(scene) {
+            if (scene.ballLaunched && scene.mainBall) {
+                for (let i = 0; i < 2; i++) {
+                    scene.spawnExtraBall(scene.mainBall);
+                }
+            }
+            scene.hudPowerupIcon = scene.add.text(scene.scale.width / 2 - 40, 20, POWERUPS[1].icon, {
+                fontSize: '20px', color: '#aa44ff'
+            }).setDepth(25);
+        },
+        remove(scene) {}
+    },
+    {
+        id: 'slow',
+        name: '减速',
+        icon: '◷',
+        color: 0x44aaff,
+        duration: 10000,
+        apply(scene) {
+            scene.applyBallSpeedMult(0.5);
+            scene.hudPowerupIcon = scene.add.text(scene.scale.width / 2 - 40, 20, POWERUPS[2].icon, {
+                fontSize: '20px', color: '#44aaff'
+            }).setDepth(25);
+        },
+        remove(scene) {
+            scene.applyBallSpeedMult(2);
+        }
+    },
+    {
+        id: 'fireball',
+        name: '火球',
+        icon: '🔥',
+        color: 0xff4400,
+        duration: 8000,
+        apply(scene) {
+            scene.buffs.fireball = true;
+            if (scene.mainBall) {
+                scene.mainBall.setFillStyle(0xff4400);
+            }
+            scene.hudPowerupIcon = scene.add.text(scene.scale.width / 2 - 40, 20, POWERUPS[3].icon, {
+                fontSize: '20px', color: '#ff4400'
+            }).setDepth(25);
+        },
+        remove(scene) {
+            scene.buffs.fireball = false;
+            if (scene.mainBall) {
+                scene.mainBall.setFillStyle(0xffee00);
+            }
+        }
+    },
+];
 
 // ──────────────────────────────────────────
 // 圣遗物库（从砖块小概率掉落，永久生效）
@@ -147,7 +227,6 @@ const BUFF_POOL = [
         maxStacks: 4,
         apply(scene) {
             scene.buffs.overclock = Math.min((scene.buffs.overclock || 1) + 1, 4);
-            // 立即应用速度倍率到所有球
             const mult = 1 + scene.buffs.overclock * 0.15;
             scene.applyBallSpeedMult(mult);
         },
@@ -225,20 +304,20 @@ export default class GameScene extends Phaser.Scene {
             maxHp:     5,
             unitWidth: 80,
         };
-        // Buff 状态（key-value 记录叠加次数）
+        // Buff 状态
         this.buffs = {};
         // 圣遗物状态
         this.relics = {};
         // 游戏进程
         this.wave          = 1;
         this.score         = 0;
-        this.bricksKilled  = 0;   // 用于过载协议计数
-        this.extraPick     = 0;   // 过载协议额外抽取次数
+        this.bricksKilled  = 0;
+        this.extraPick     = 0;
         this.isLeftDown    = false;
         this.isRightDown   = false;
         this.ballLaunched  = false;
-        this.gameState     = 'PLAYING'; // PLAYING | UPGRADING | GAMEOVER | EVENT
-        this.timeShardUsed = false; // 时间碎片每波重置
+        this.gameState     = 'PLAYING';
+        this.timeShardUsed = false;
 
         // 激光定时器
         this.laserTimer = null;
@@ -251,7 +330,21 @@ export default class GameScene extends Phaser.Scene {
         this.hpMultiplier  = diff.hpMultiplier;
         this.debugMode     = s.debug === 'on';
 
-        // 死亡契约：初始血-1
+        // 连击系统
+        this.combo = 0;
+        this.comboTimer = null;
+        this.maxCombo = 0;
+
+        // 道具状态
+        this.activePowerups = {};
+        this.hudPowerupIcon = null;
+        this.powerupTimers = [];
+
+        // 粘球瞄准
+        this.isStickyHold = false;
+        this.aimAngle = -Math.PI / 2;
+
+        // 死亡契约
         if (this.relics.death_pact) this.player.hp = Math.max(1, this.player.hp - 1);
     }
 
@@ -267,6 +360,13 @@ export default class GameScene extends Phaser.Scene {
         this.enemyBullets = this.physics.add.group();
         this.lasers       = this.physics.add.group();
         this.relicDrops   = this.physics.add.group();
+        this.powerups     = this.physics.add.group();
+
+        this.initBall();
+
+        // 创建瞄准线
+        this.aimLine = this.add.graphics().setDepth(5);
+        this.aimLine.setVisible(false);
 
         if (this.debugMode) {
             this.physics.world.createDebugGraphic();
@@ -275,9 +375,15 @@ export default class GameScene extends Phaser.Scene {
 
         if (this.sys.game.device.input.touch) {
             this.createMobileControls();
+            // 移动端点击发射
+            this.input.on('pointerdown', () => {
+                if (this.gameState === 'PLAYING' && !this.ballLaunched) {
+                    this.launchBall();
+                }
+            });
         } else {
             this.cursors = this.input.keyboard.createCursorKeys();
-            this.keys    = this.input.keyboard.addKeys('A,D,SPACE');
+            this.keys    = this.input.keyboard.addKeys('A,D,SPACE,Q');
         }
 
         // 碰撞
@@ -285,15 +391,16 @@ export default class GameScene extends Phaser.Scene {
         this.physics.add.collider(this.balls, this.bricks, this.handleBrickHit,  null, this);
         this.physics.add.overlap(this.paddle, this.enemyBullets, this.handleBulletHit, null, this);
         this.physics.add.overlap(this.lasers, this.bricks,      this.handleLaserHit,  null, this);
-        // 圣遗物拾取
         this.physics.add.overlap(this.paddle, this.relicDrops, this.handleRelicPickup, null, this);
+        this.physics.add.overlap(this.paddle, this.powerups,   this.handlePowerupPickup, null, this);
 
         this.input.keyboard.on('keydown-ESC', () => this.scene.start('MenuScene'));
 
         this.createHUD();
         this.addScanlines();
+        this.showStartTip();
 
-        // 能量核心：每波开始时炸2块
+        // 能量核心
         if (this.relics.energy_core) {
             this.time.delayedCall(600, () => {
                 this.blowRandomBricks(2);
@@ -302,6 +409,21 @@ export default class GameScene extends Phaser.Scene {
 
         // 启动激光
         if (this.buffs.laserMount) this.startLaserTimer();
+    }
+
+    // ──────────────────────────────────────────
+    // 开始提示
+    // ──────────────────────────────────────────
+    showStartTip() {
+        const W = this.scale.width;
+        this.tipText = this.add.text(W / 2, 620, '← → 移动  |  按住空格瞄准  |  松开发射', {
+            fontSize: '11px', color: '#666688', fontFamily: '"Press Start 2P", monospace'
+        }).setOrigin(0.5).setDepth(25);
+        this.tweens.add({
+            targets: this.tipText, alpha: 0,
+            duration: 3000, delay: 2000,
+            onComplete: () => this.tipText.destroy()
+        });
     }
 
     // ──────────────────────────────────────────
@@ -319,6 +441,12 @@ export default class GameScene extends Phaser.Scene {
         this.hudHp     = this.add.text(W - 12, H - 52, '', { fontSize: '12px', color: '#ff4466', fontFamily: '"Press Start 2P", monospace' }).setOrigin(1, 0).setDepth(11);
         this.hudTags   = this.add.text(12, H - 34, '', { fontSize: '10px', color: '#aaaaaa' }).setDepth(11);
         this.hudEsc   = this.add.text(W - 12, H - 34, 'ESC', { fontSize: '10px', color: '#224433' }).setOrigin(1, 0).setDepth(11);
+
+        // 连击显示
+        this.hudCombo = this.add.text(W / 2, 380, '', {
+            fontSize: '24px', color: '#ff6600', fontFamily: '"Press Start 2P", monospace',
+            stroke: '#000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(25).setAlpha(0);
 
         this.updateHUD();
     }
@@ -341,6 +469,40 @@ export default class GameScene extends Phaser.Scene {
         if (this.buffs.chainBurst)  tags.push({ tag: 'GENERAL', count: 1 });
         if (tags.length === 0) return '';
         return tags.map(t => `[${TAG_CONFIG[t.tag].label}×${t.count}]`).join(' ');
+    }
+
+    // ──────────────────────────────────────────
+    // 连击系统
+    // ──────────────────────────────────────────
+    incrementCombo() {
+        this.combo++;
+        this.maxCombo = Math.max(this.maxCombo, this.combo);
+
+        // 重置计时器
+        if (this.comboTimer) this.comboTimer.remove();
+        this.comboTimer = this.time.delayedCall(1500, () => {
+            this.combo = 0;
+            this.hudCombo.setAlpha(0);
+        });
+
+        // 连击显示
+        if (this.combo >= 2) {
+            const multiplier = Math.min(this.combo, 10);
+            const colors = ['', '#ffff00', '#ff9900', '#ff4400', '#ff0044'];
+            const color = colors[Math.min(multiplier - 1, colors.length - 1)];
+            this.hudCombo.setText(`${this.combo} COMBO! ×${multiplier}`);
+            this.hudCombo.setColor(color);
+            this.hudCombo.setAlpha(1);
+            this.hudCombo.setScale(1.2);
+            this.tweens.add({
+                targets: this.hudCombo, scaleX: 1, scaleY: 1,
+                duration: 200, ease: 'Back.easeOut'
+            });
+        }
+    }
+
+    getComboMultiplier() {
+        return Math.min(this.combo, 10);
     }
 
     // ──────────────────────────────────────────
@@ -383,7 +545,6 @@ export default class GameScene extends Phaser.Scene {
     }
 
     damagePlayer() {
-        // 时间碎片：漏球不扣血，弹回但每波仅一次
         if (this.relics.time_shard && !this.timeShardUsed) {
             this.timeShardUsed = true;
             this.cameras.main.shake(80, 0.006);
@@ -408,13 +569,14 @@ export default class GameScene extends Phaser.Scene {
         const W = this.scale.width, H = this.scale.height;
         const panel = this.add.container(0, 0).setDepth(50);
         panel.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75));
-        panel.add(this.add.rectangle(W / 2 + 5, H / 2 + 5, 340, 220, 0x000000));
-        panel.add(this.add.rectangle(W / 2, H / 2, 340, 220, 0x000000).setStrokeStyle(3, 0xff2244));
-        panel.add(this.add.text(W / 2, H / 2 - 60, 'GAME OVER', {
+        panel.add(this.add.rectangle(W / 2 + 5, H / 2 + 5, 340, 240, 0x000000));
+        panel.add(this.add.rectangle(W / 2, H / 2, 340, 240, 0x000000).setStrokeStyle(3, 0xff2244));
+        panel.add(this.add.text(W / 2, H / 2 - 75, 'GAME OVER', {
             fontSize: '26px', fontFamily: '"Press Start 2P", monospace',
             color: '#ff2244', shadow: { x: 3, y: 3, color: '#660000', blur: 0, fill: true },
         }).setOrigin(0.5));
-        panel.add(this.add.text(W / 2, H / 2 - 15, `波次 ${this.wave}   得分 ${this.score}`, { fontSize: '13px', color: '#ffee00' }).setOrigin(0.5));
+        panel.add(this.add.text(W / 2, H / 2 - 30, `波次 ${this.wave}   得分 ${this.score}`, { fontSize: '13px', color: '#ffee00' }).setOrigin(0.5));
+        panel.add(this.add.text(W / 2, H / 2 - 5, `最高连击 ${this.maxCombo}`, { fontSize: '12px', color: '#ff9900' }).setOrigin(0.5));
         panel.add(this.add.text(W / 2, H / 2 + 18, this.getActiveTags() || '无流派激活', { fontSize: '12px', color: '#aaaaaa' }).setOrigin(0.5));
         panel.add(this.add.text(W / 2, H / 2 + 50, '点击或按任意键重新开始', { fontSize: '12px', color: '#00ffcc' }).setOrigin(0.5));
         panel.add(this.add.text(W / 2, H / 2 + 75, 'ESC → 返回菜单', { fontSize: '10px', color: '#224433' }).setOrigin(0.5));
@@ -434,7 +596,6 @@ export default class GameScene extends Phaser.Scene {
     }
 
     spawnWave(wave) {
-        // 特殊事件波次
         if (wave === 5)  { this.spawnEliteWave(); return; }
         if (wave === 10) { this.spawnBossWave();  return; }
 
@@ -457,7 +618,6 @@ export default class GameScene extends Phaser.Scene {
     }
 
     spawnEliteWave() {
-        // 波次5精英波：砖块HP翻倍，清完额外给一个圣遗物
         const msg = this.add.text(this.scale.width / 2, 300, '⚔ 精英波 ⚔', {
             fontSize: '24px', fontFamily: '"Press Start 2P", monospace',
             color: '#ff3300', stroke: '#000', strokeThickness: 3,
@@ -467,29 +627,27 @@ export default class GameScene extends Phaser.Scene {
         for (let row = 0; row < 6; row++) {
             for (let col = 0; col < 6; col++) {
                 const type = Phaser.Math.RND.pick(['armored', 'armored', 'explosive', 'ghost', 'normal']);
-                this.createBrickByType(50 + col * 64, 70 + row * 38, type, 2); // HP基础+2
+                this.createBrickByType(50 + col * 64, 70 + row * 38, type, 2);
             }
         }
     }
 
     spawnBossWave() {
-        // 波次10 Boss波：中心一个超大40HP Boss砖块
         const msg = this.add.text(this.scale.width / 2, 300, '💀 Boss波 💀', {
             fontSize: '24px', fontFamily: '"Press Start 2P", monospace',
             color: '#ff0000', stroke: '#000', strokeThickness: 3,
         }).setOrigin(0.5).setDepth(30);
         this.tweens.add({ targets: msg, alpha: 0, y: 280, duration: 1200, delay: 1000, onComplete: () => msg.destroy() });
 
-        // 普通砖块包围
         const typePool = ['normal', 'normal', 'armored', 'explosive'];
         for (let row = 0; row < 7; row++) {
             for (let col = 0; col < 6; col++) {
-                if (row === 3 && (col === 2 || col === 3)) continue; // 给Boss留位置
+                if (row === 3 && (col === 2 || col === 3)) continue;
                 const type = Phaser.Math.RND.pick(typePool);
                 this.createBrickByType(50 + col * 64, 70 + row * 38, type, 1);
             }
         }
-        // Boss 砖块
+
         const boss = this.add.rectangle(240, 200, 90, 40, 0x220000);
         this.physics.add.existing(boss, true);
         boss.setData('type', 'boss');
@@ -499,7 +657,6 @@ export default class GameScene extends Phaser.Scene {
         boss.setStrokeStyle(3, 0xff0000, 1);
         this.bricks.add(boss);
 
-        // Boss 移动行为
         this.tweens.add({
             targets: boss,
             x: { from: 120, to: 360 },
@@ -566,7 +723,6 @@ export default class GameScene extends Phaser.Scene {
 
     getBallDamage() {
         let dmg = 1 + (this.buffs.armorPierce || 0);
-        // 磁场共振：球数≥3时伤害翻倍
         if (this.buffs.resonance && this.balls.countActive() >= 3) dmg *= 2;
         return dmg;
     }
@@ -574,7 +730,7 @@ export default class GameScene extends Phaser.Scene {
     handleBrickHit(ball, brick) {
         if (!brick || !brick.active) return;
 
-        // 虚空裂隙：15%概率无视碰撞
+        // 虚空裂隙
         if (this.relics.void_rift && Math.random() < 0.15) return;
 
         const type  = brick.getData('type');
@@ -582,9 +738,19 @@ export default class GameScene extends Phaser.Scene {
         const hp    = brick.getData('hp') - power;
         brick.setData('hp', hp);
 
-        this.hitStop(45);
+        // 火球穿透
+        const isFireball = this.buffs.fireball && ball === this.mainBall;
+        const destroyed = hp <= 0;
+
+        if (!isFireball || !destroyed) {
+            this.hitStop(45);
+        }
+
         this.cameras.main.shake(55, 0.005);
         this.spawnBrickParticles(brick.x, brick.y, brick.fillColor || 0x3377ff);
+
+        // 增加连击
+        this.incrementCombo();
 
         if (hp > 0) {
             if (type === 'armored') {
@@ -594,14 +760,12 @@ export default class GameScene extends Phaser.Scene {
                 else if (ratio > 0.3) brick.setFillStyle(0x221122);
                 else                  brick.setFillStyle(0x110011);
             }
-            // Boss受伤变色
             if (type === 'boss') {
                 const maxHp = brick.getData('maxHp');
                 const ratio  = hp / maxHp;
                 if (ratio > 0.7)      brick.setFillStyle(0x550000);
                 else if (ratio > 0.4) brick.setFillStyle(0x441100);
                 else                  brick.setFillStyle(0x330000);
-                // Boss受伤击退
                 this.tweens.killTweensOf(brick);
                 this.tweens.add({
                     targets: brick, x: brick.x + (Math.random() > 0.5 ? 12 : -12),
@@ -613,14 +777,19 @@ export default class GameScene extends Phaser.Scene {
                 this.spawnBullet(brick.x, brick.y);
                 if (this.buffs.chainBurst) this.chainExplosion(brick.x, brick.y);
             }
-            // 圣遗物掉落（精英波/Boss波 100%，普通波 8%）
+
+            // 圣遗物掉落
             const dropRate = (type === 'boss' || this.wave === 5) ? 1.0 : 0.08;
             if (Math.random() < dropRate) this.spawnRelicDrop(brick.x, brick.y);
+
+            // 道具掉落（15%概率）
+            if (Math.random() < 0.15) this.spawnPowerupDrop(brick.x, brick.y);
 
             brick.destroy();
             this.bricksKilled++;
             const baseScore = type === 'armored' ? 30 : type === 'ghost' ? 25 : type === 'boss' ? 200 : 10;
-            this.score += baseScore * this.wave;
+            const comboMult = this.getComboMultiplier();
+            this.score += baseScore * this.wave * comboMult;
             this.updateHUD();
         }
 
@@ -630,7 +799,6 @@ export default class GameScene extends Phaser.Scene {
     }
 
     chainExplosion(x, y) {
-        // 波及周围4个方向的砖块各扣1血
         this.bricks.children.iterate(brick => {
             if (!brick || !brick.active) return;
             const dx = Math.abs(brick.x - x);
@@ -656,10 +824,84 @@ export default class GameScene extends Phaser.Scene {
     }
 
     // ──────────────────────────────────────────
+    // 道具系统
+    // ──────────────────────────────────────────
+    spawnPowerupDrop(x, y) {
+        const powerup = Phaser.Math.RND.pick(POWERUPS);
+        const icon = this.add.text(x, y, powerup.icon, { fontSize: '20px' }).setOrigin(0.5).setDepth(18);
+        const glow = this.add.rectangle(x, y, 26, 26, powerup.color, 0.3)
+            .setStrokeStyle(2, powerup.color, 1).setDepth(17);
+
+        this.tweens.add({ targets: icon, y: y - 6, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        this.tweens.add({ targets: glow, alpha: 0.5, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+        const drop = this.add.rectangle(x, y, 26, 26, 0x000000, 0).setDepth(16);
+        drop.setData('powerupId', powerup.id);
+        this.physics.add.existing(drop, true);
+        this.powerups.add(drop);
+
+        // 5秒后自动消失
+        this.time.delayedCall(5000, () => {
+            if (drop.active) {
+                icon.destroy();
+                glow.destroy();
+                drop.destroy();
+            }
+        });
+    }
+
+    handlePowerupPickup(paddle, drop) {
+        const powerupId = drop.getData('powerupId');
+        const powerup = POWERUPS.find(p => p.id === powerupId);
+        if (!powerup) return;
+
+        const x = drop.x, y = drop.y;
+
+        // 清除同类型旧道具
+        if (this.activePowerups[powerupId]) {
+            if (powerup.remove) powerup.remove(this);
+            if (this.powerupTimers[powerupId]) {
+                this.powerupTimers[powerupId].remove();
+                this.powerupTimers[powerupId] = null;
+            }
+        }
+
+        // 激活新道具
+        powerup.apply(this);
+        this.activePowerups[powerupId] = true;
+
+        // 掉落物特效
+        this.powerups.getChildren().forEach(c => { if (c.x === x && c.y === y) c.destroy(); });
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const p = this.add.rectangle(x, y, 4, 4, powerup.color).setDepth(22);
+            this.tweens.add({
+                targets: p,
+                x: x + Math.cos(angle) * 30,
+                y: y + Math.sin(angle) * 30,
+                alpha: 0, duration: 400, ease: 'Quad.easeOut',
+                onComplete: () => p.destroy(),
+            });
+        }
+
+        this.flashText(x, y - 15, `${powerup.icon} ${powerup.name}！`, '#' + powerup.color.toString(16).padStart(6, '0'), 14);
+
+        // 定时移除
+        if (powerup.duration > 0) {
+            this.powerupTimers[powerupId] = this.time.delayedCall(powerup.duration, () => {
+                if (powerup.remove) powerup.remove(this);
+                this.activePowerups[powerupId] = false;
+                if (this.hudPowerupIcon) this.hudPowerupIcon.destroy();
+                this.hudPowerupIcon = null;
+                this.powerupTimers[powerupId] = null;
+            });
+        }
+    }
+
+    // ──────────────────────────────────────────
     // 圣遗物掉落与拾取
     // ──────────────────────────────────────────
     spawnRelicDrop(x, y) {
-        // 不重复掉落同一个圣遗物
         const ownedIds = Object.keys(this.relics);
         const available = RELICS.filter(r => !this.relics[r.id]);
         if (available.length === 0) return;
@@ -669,7 +911,6 @@ export default class GameScene extends Phaser.Scene {
         const glow  = this.add.rectangle(x, y, 28, 28, relic.color, 0.25)
             .setStrokeStyle(1, relic.color, 0.8).setDepth(17);
 
-        // 悬浮动画
         this.tweens.add({ targets: icon, y: y - 8, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         this.tweens.add({ targets: glow, alpha: 0.6, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
@@ -686,10 +927,8 @@ export default class GameScene extends Phaser.Scene {
 
         this.relics[relicId] = true;
 
-        // 拾取特效
         const x = drop.x, y = drop.y;
         this.relicDrops.getChildren().forEach(c => { if (c.x === x && c.y === y) c.destroy(); });
-        // 爆炸光效
         for (let i = 0; i < 12; i++) {
             const angle = (i / 12) * Math.PI * 2;
             const p = this.add.rectangle(x, y, 4, 4, relic.color).setDepth(22);
@@ -703,7 +942,6 @@ export default class GameScene extends Phaser.Scene {
         }
         this.flashText(x, y - 20, `${relic.icon} ${relic.name}`, '#' + relic.color.toString(16).padStart(6, '0'), 14);
 
-        // 立即生效
         if (relicId === 'energy_core') this.blowRandomBricks(2);
     }
 
@@ -747,21 +985,46 @@ export default class GameScene extends Phaser.Scene {
         ball.body.setVelocityX(speed * angle);
         if (ball.body.velocity.y > 0) ball.body.setVelocityY(-Math.abs(ball.body.velocity.y));
 
-        // 反弹加速（每次弹板+8%，本局累积）
         if (this.buffs.bounceAccel) {
             const extra = 1 + this.buffs.bounceAccel * 0.08;
             const vx = ball.body.velocity.x, vy = ball.body.velocity.y;
             const spd = Math.sqrt(vx * vx + vy * vy);
-            if (spd > 0) ball.body.setVelocity(vx / spd * spd * extra, vy / spd * spd * extra);
+            if (spd > 0) b.body.setVelocity(vx / spd * spd * extra, vy / spd * spd * extra);
         }
 
-        // 混沌核心：撞挡板时25%×叠加强度概率分裂
         if (this.buffs.chaosCore) {
             const chance = Math.min(this.buffs.chaosCore * 0.25, 0.75);
             if (Math.random() < chance && this.balls.countActive() < 5) {
                 this.spawnExtraBall(ball);
             }
         }
+    }
+
+    // 粘球瞄准
+    stickBall() {
+        if (this.ballLaunched || !this.mainBall) return;
+        this.isStickyHold = true;
+        this.mainBall.setPosition(this.paddle.x, 650);
+        this.mainBall.body.setVelocity(0, 0);
+        this.aimLine.setVisible(true);
+    }
+
+    releaseBall() {
+        if (!this.isStickyHold) return;
+        this.isStickyHold = false;
+        this.aimLine.setVisible(false);
+        this.launchBallFromAngle();
+    }
+
+    launchBallFromAngle() {
+        if (!this.mainBall) return;
+        const speed = Math.sqrt(this.ballSpeedCfg.vx ** 2 + this.ballSpeedCfg.vy ** 2);
+        const mult = 1 + (this.buffs.overclock || 0) * 0.15;
+        this.mainBall.body.setVelocity(
+            Math.cos(this.aimAngle) * speed * mult,
+            Math.sin(this.aimAngle) * speed * mult
+        );
+        this.ballLaunched = true;
     }
 
     launchBall() {
@@ -780,6 +1043,15 @@ export default class GameScene extends Phaser.Scene {
         this.balls.children.iterate(b => { if (b && b !== this.mainBall) b.destroy(); });
         this.mainBall.setPosition(this.paddle.x, 650);
         this.mainBall.body.setVelocity(0, 0);
+        // 重置火球效果
+        if (this.buffs.fireball) {
+            this.mainBall.setFillStyle(0xff4400);
+        } else {
+            this.mainBall.setFillStyle(0xffee00);
+        }
+        // 连击清零
+        this.combo = 0;
+        this.hudCombo.setAlpha(0);
     }
 
     spawnExtraBall(fromBall) {
@@ -791,7 +1063,6 @@ export default class GameScene extends Phaser.Scene {
         const b = this.add.rectangle(fromBall.x + 8, fromBall.y, 11, 11, color);
         this.physics.add.existing(b);
         b.body.setCollideWorldBounds(true).setBounce(1, 1);
-        // 与母球反向偏移出射
         b.body.setVelocity(-vx * (extraSpd / spd), vy * (extraSpd / spd) - 30);
         this.balls.add(b);
         this.physics.add.collider(b, this.paddle, this.handlePaddleHit, null, this);
@@ -820,7 +1091,7 @@ export default class GameScene extends Phaser.Scene {
         laser.setData('pierced', false);
         this.lasers.add(laser);
         laser.body.setVelocityY(-700);
-        this.physics.add.collider(laser, this.paddle); // 跟随挡板水平移动
+        this.physics.add.collider(laser, this.paddle);
         this.cameras.main.shake(35, 0.003);
     }
 
@@ -830,7 +1101,6 @@ export default class GameScene extends Phaser.Scene {
         brick.setData('hp', hp);
         this.spawnBrickParticles(brick.x, brick.y, 0xff6600);
 
-        // 超载放电：溅射周围
         if (this.buffs.overloadSplash) {
             this.bricks.children.iterate(b => {
                 if (!b || !b.active || b === brick) return;
@@ -851,7 +1121,6 @@ export default class GameScene extends Phaser.Scene {
             brick.destroy();
         }
 
-        // 等离子穿透：不在第一个停止
         if (!this.buffs.plasmaPierce || laser.getData('pierced')) {
             laser.destroy();
         } else {
@@ -867,7 +1136,7 @@ export default class GameScene extends Phaser.Scene {
         if (this.bricks.countActive() === 0) this.onWaveClear();
     }
 
-    // ───────────────────────────────────────────
+    // ──────────────────────────────────────────
     // 波次清除 → 升级选择
     // ──────────────────────────────────────────
     onWaveClear() {
@@ -875,13 +1144,11 @@ export default class GameScene extends Phaser.Scene {
         this.gameState = 'UPGRADING';
         this.physics.pause();
 
-        // 过载协议：每20块额外一次抽取
         if (this.buffs.overdrive) {
             this.extraPick = Math.floor(this.bricksKilled / 20);
             this.bricksKilled = this.bricksKilled % 20;
         }
 
-        // 精英波/Boss波额外圣遗物
         if (this.wave === 5 || this.wave === 10) {
             const msg = this.add.text(this.scale.width / 2, 200, `${this.wave === 5 ? '⚔' : '💀'} 完成！圣遗物奖励！`, {
                 fontSize: '16px', fontFamily: '"Press Start 2P", monospace', color: '#ffee00',
@@ -891,7 +1158,7 @@ export default class GameScene extends Phaser.Scene {
 
         this.time.delayedCall(500, () => {
             this.resetBall();
-            this.timeShardUsed = false; // 新波次重置时间碎片
+            this.timeShardUsed = false;
             this.showUpgradeUI();
         });
     }
@@ -901,7 +1168,6 @@ export default class GameScene extends Phaser.Scene {
         this.upgradeContainer = this.add.container(0, 0).setDepth(40);
         this.upgradeContainer.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.78));
 
-        // 标题
         this.upgradeContainer.add(
             this.add.text(W / 2, 70, `波次 ${this.wave} 完成！`, {
                 fontSize: '18px', fontFamily: '"Press Start 2P", monospace', color: '#ffee00',
@@ -911,11 +1177,9 @@ export default class GameScene extends Phaser.Scene {
             this.add.text(W / 2, 110, '选择一项永久强化', { fontSize: '13px', color: '#00ffcc' }).setOrigin(0.5)
         );
 
-        // 可抽取数量（三选N，+额外抽取）
         const pickCount = (this.relics.death_pact ? 4 : 3) + this.extraPick;
         this.extraPick = 0;
 
-        // 按流派标签过滤并选择（确保多样性）
         const shuffled = Phaser.Math.RND.shuffle([...BUFF_POOL]);
         const choices  = shuffled.slice(0, Math.min(pickCount, BUFF_POOL.length));
 
@@ -930,7 +1194,6 @@ export default class GameScene extends Phaser.Scene {
         const tagCfg    = TAG_CONFIG[buff.tag];
         const txtColor  = '#' + buff.color.toString(16).padStart(6, '0');
 
-        // 流派标签背景
         container.add(this.add.rectangle(x - 110, y - 30, 48, 18, 0x000000, 0.8)
             .setStrokeStyle(1, buff.color, 1));
 
@@ -941,33 +1204,27 @@ export default class GameScene extends Phaser.Scene {
             .setDepth(41);
         container.add(bg);
 
-        // 流派标签
         container.add(this.add.text(x - 110, y - 30, tagCfg.label, {
             fontSize: '8px', fontFamily: '"Press Start 2P", monospace',
             color: txtColor,
         }).setOrigin(0.5).setDepth(42));
 
-        // 图标
         container.add(this.add.text(x - 130, y - 10, buff.icon, { fontSize: '32px', color: txtColor }).setOrigin(0.5).setDepth(42));
 
-        // 名称
         container.add(this.add.text(x - 90, y - 28, buff.name, {
             fontSize: '17px', fontStyle: 'bold', color: '#ffffff',
         }).setOrigin(0, 0.5).setDepth(42));
 
-        // 描述
         container.add(this.add.text(x - 90, y + 5, buff.desc, {
             fontSize: '12px', color: '#aaaaaa',
         }).setOrigin(0, 0.5).setDepth(42));
 
-        // 叠加提示
         if (buff.stackable) {
             container.add(this.add.text(x - 90, y + 26, `[可叠加 ×${buff.maxStacks}]`, {
                 fontSize: '10px', color: '#666666',
             }).setOrigin(0, 0.5).setDepth(42));
         }
 
-        // 序号
         container.add(this.add.text(x + 140, y + 42, `[${idx + 1}]`, {
             fontSize: '10px', fontFamily: '"Press Start 2P", monospace', color: txtColor,
         }).setOrigin(1, 0.5).setDepth(42));
@@ -984,7 +1241,6 @@ export default class GameScene extends Phaser.Scene {
         if (this.gameState !== 'UPGRADING') return;
         buff.apply(this);
 
-        // 流派标签提示
         const tag = TAG_CONFIG[buff.tag];
         this.flashText(this.scale.width / 2, 360, `${buff.icon} ${buff.name}`, '#' + buff.color.toString(16).padStart(6, '0'), 18);
 
@@ -997,11 +1253,9 @@ export default class GameScene extends Phaser.Scene {
         this.bricks.clear(true, true);
         this.spawnWave(this.wave);
 
-        // 重建碰撞
         this.physics.add.collider(this.balls,        this.bricks, this.handleBrickHit, null, this);
         this.physics.add.overlap(this.lasers,         this.bricks, this.handleLaserHit, null, this);
 
-        // 能量核心每波生效
         if (this.relics.energy_core) {
             this.time.delayedCall(600, () => this.blowRandomBricks(2));
         }
@@ -1072,12 +1326,42 @@ export default class GameScene extends Phaser.Scene {
         } else {
             if (this.cursors.left.isDown  || this.keys.A.isDown) dir = -1;
             else if (this.cursors.right.isDown || this.keys.D.isDown) dir = 1;
-            if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) this.launchBall();
         }
-        this.paddle.body.setVelocityX(dir * paddleSpeed);
-        if (dir !== 0 && !this.ballLaunched) this.launchBall();
 
-        // 引力透镜：球靠近挡板时轻微吸引
+        // 粘球瞄准控制
+        if (!this.sys.game.device.input.touch) {
+            if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
+                this.stickBall();
+            }
+            if (this.keys.SPACE.isDown && this.isStickyHold) {
+                // 根据挡板位置更新瞄准
+                if (this.mainBall) {
+                    this.mainBall.x = this.paddle.x;
+                    this.mainBall.y = 650;
+                }
+                // 画瞄准线
+                this.aimLine.clear();
+                this.aimLine.lineStyle(2, 0x00ffcc, 0.6);
+                const startX = this.paddle.x;
+                const startY = 640;
+                this.aimLine.lineBetween(startX, startY, startX, 100);
+                // 瞄准点
+                this.aimLine.fillStyle(0x00ffcc, 0.8);
+                this.aimLine.fillCircle(startX, 100, 4);
+            }
+            if (Phaser.Input.Keyboard.JustUp(this.keys.SPACE)) {
+                this.releaseBall();
+            }
+        }
+
+        this.paddle.body.setVelocityX(dir * paddleSpeed);
+
+        // 移动挡板时球跟随（未发射时）
+        if (!this.ballLaunched && this.mainBall && !this.isStickyHold) {
+            this.mainBall.x = this.paddle.x;
+        }
+
+        // 引力透镜
         if (this.relics.gravity_lens && !this.ballLaunched) {
             // 仅未发射时自动追随
         }

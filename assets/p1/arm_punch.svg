@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="90" height="40" viewBox="0 0 90 40">
+  <defs>
+    <linearGradient id="armGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgb(240, 190, 150)"/>
+      <stop offset="100%" stop-color="rgb(190, 140, 100)"/>
+    </linearGradient>
+    <linearGradient id="sleeveGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgb(220, 40, 70)"/>
+      <stop offset="100%" stop-color="rgb(140, 20, 40)"/>
+    </linearGradient>
+  </defs>
+  <!-- 袖子 -->
+  <rect x="2" y="8" width="38" height="24" rx="8" fill="url(#sleeveGrad2)" stroke="rgb(140, 20, 40)" stroke-width="1.5"/>
+  <!-- 前臂 -->
+  <rect x="38" y="10" width="32" height="20" rx="6" fill="url(#armGrad2)" stroke="rgb(190, 140, 100)" stroke-width="1.5"/>
+  <!-- 护腕 -->
+  <rect x="62" y="8" width="8" height="24" rx="3" fill="rgb(220, 40, 70)" stroke="rgb(140, 20, 40)" stroke-width="1.5"/>
+  <!-- 拳头 -->
+  <ellipse cx="78" cy="20" rx="10" ry="12" fill="url(#armGrad2)" stroke="rgb(190, 140, 100)" stroke-width="2"/>
+  <line x1="72" y1="11" x2="76" y2="11" stroke="rgb(190, 140, 100)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="70" y1="16" x2="74" y2="16" stroke="rgb(190, 140, 100)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="70" y1="21" x2="74" y2="21" stroke="rgb(190, 140, 100)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="71" y1="26" x2="75" y2="26" stroke="rgb(190, 140, 100)" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

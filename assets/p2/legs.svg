@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <defs>
+    <linearGradient id="legGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgb(100, 170, 255)"/>
+      <stop offset="100%" stop-color="rgb(20, 60, 160)"/>
+    </linearGradient>
+    <linearGradient id="shoeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#555"/>
+      <stop offset="100%" stop-color="#111"/>
+    </linearGradient>
+  </defs>
+  <!-- 左腿 -->
+  <rect x="8" y="2" width="26" height="44" rx="8" fill="url(#legGrad)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <!-- 右腿 -->
+  <rect x="46" y="2" width="26" height="44" rx="8" fill="url(#legGrad)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <!-- 护膝 左 -->
+  <ellipse cx="21" cy="26" rx="10" ry="8" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <!-- 护膝 右 -->
+  <ellipse cx="59" cy="26" rx="10" ry="8" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <!-- 左靴子 -->
+  <rect x="6" y="46" width="30" height="20" rx="5" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
+  <ellipse cx="21" cy="66" rx="17" ry="7" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
+  <!-- 右靴子 -->
+  <rect x="44" y="46" width="30" height="20" rx="5" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
+  <ellipse cx="59" cy="66" rx="17" ry="7" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
+  <!-- 靴子高光 -->
+  <path d="M10 50 Q21 47 32 50" stroke="#888" stroke-width="1" fill="none" opacity="0.6"/>
+  <path d="M48 50 Q59 47 70 50" stroke="#888" stroke-width="1" fill="none" opacity="0.6"/>
+</svg>

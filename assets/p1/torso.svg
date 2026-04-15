@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="90" viewBox="0 0 80 90">
+  <defs>
+    <linearGradient id="torsoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgb(255, 100, 120)"/>
+      <stop offset="60%" stop-color="rgb(220, 40, 70)"/>
+      <stop offset="100%" stop-color="rgb(140, 20, 40)"/>
+    </linearGradient>
+  </defs>
+  <!-- 主体 -->
+  <rect x="8" y="5" width="64" height="75" rx="10" fill="url(#torsoGrad)" stroke="rgb(140, 20, 40)" stroke-width="2"/>
+  <!-- 衣领V形 -->
+  <path d="M40 8 L28 28 L40 22 L52 28 Z" fill="rgb(240, 190, 150)" stroke="rgb(140, 20, 40)" stroke-width="1.5"/>
+  <!-- 腰带 -->
+  <rect x="8" y="68" width="64" height="12" rx="4" fill="white" stroke="rgb(140, 20, 40)" stroke-width="1.5"/>
+  <!-- 腰带扣 -->
+  <rect x="32" y="69" width="16" height="10" rx="2" fill="rgb(220, 40, 70)" stroke="rgb(140, 20, 40)" stroke-width="1"/>
+  <!-- 肌肉线条 -->
+  <line x1="40" y1="28" x2="40" y2="66" stroke="rgb(140, 20, 40)" stroke-width="1.5" opacity="0.5"/>
+  <path d="M18 35 Q40 42 62 35" stroke="rgb(140, 20, 40)" stroke-width="1" fill="none" opacity="0.4"/>
+  <path d="M18 50 Q40 57 62 50" stroke="rgb(140, 20, 40)" stroke-width="1" fill="none" opacity="0.4"/>
+  <!-- 护胸高光 -->
+  <ellipse cx="28" cy="30" rx="8" ry="10" fill="rgb(255, 100, 120)" opacity="0.3"/>
+  <ellipse cx="52" cy="30" rx="8" ry="10" fill="rgb(255, 100, 120)" opacity="0.3"/>
+</svg>

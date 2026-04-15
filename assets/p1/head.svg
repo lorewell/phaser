@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <defs>
+    <radialGradient id="skinGrad" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="rgb(240, 190, 150)"/>
+      <stop offset="100%" stop-color="rgb(190, 140, 100)"/>
+    </radialGradient>
+    <radialGradient id="hairGrad" cx="50%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#444"/>
+      <stop offset="100%" stop-color="#111"/>
+    </radialGradient>
+  </defs>
+  <!-- 头发 -->
+  <ellipse cx="40" cy="28" rx="28" ry="26" fill="url(#hairGrad)" stroke="#111" stroke-width="1.5"/>
+  <!-- 脸 -->
+  <ellipse cx="40" cy="46" rx="25" ry="28" fill="url(#skinGrad)" stroke="rgb(190, 140, 100)" stroke-width="1.5"/>
+  <!-- 头带 -->
+  <rect x="13" y="30" width="54" height="10" rx="3" fill="rgb(220, 40, 70)" stroke="rgb(140, 20, 40)" stroke-width="1.5"/>
+  <!-- 眼睛左 -->
+  <ellipse cx="29" cy="46" rx="5" ry="5.5" fill="white"/>
+  <ellipse cx="29" cy="47" rx="3" ry="3.5" fill="#222"/>
+  <ellipse cx="30" cy="46" rx="1" ry="1" fill="white"/>
+  <!-- 眼睛右 -->
+  <ellipse cx="51" cy="46" rx="5" ry="5.5" fill="white"/>
+  <ellipse cx="51" cy="47" rx="3" ry="3.5" fill="#222"/>
+  <ellipse cx="52" cy="46" rx="1" ry="1" fill="white"/>
+  <!-- 眉毛（愤怒） -->
+  <line x1="23" y1="38" x2="34" y2="41" stroke="#332200" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="57" y1="38" x2="46" y2="41" stroke="#332200" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- 嘴 -->
+  <path d="M31 62 Q40 58 49 62" stroke="#884422" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- 鼻子 -->
+  <path d="M38 52 Q40 58 42 52" stroke="rgb(190, 140, 100)" stroke-width="1.5" fill="none"/>
+  <!-- 头带蝴蝶结尾 -->
+  <path d="M67 33 Q74 28 72 38 Q68 34 67 38" fill="rgb(220, 40, 70)" stroke="rgb(140, 20, 40)" stroke-width="1"/>
+</svg>

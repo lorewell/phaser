@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="100" viewBox="0 0 60 100">
+  <defs>
+    <linearGradient id="klegGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgb(100, 170, 255)"/>
+      <stop offset="100%" stop-color="rgb(20, 60, 160)"/>
+    </linearGradient>
+    <linearGradient id="kshoeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#666"/>
+      <stop offset="100%" stop-color="#111"/>
+    </linearGradient>
+  </defs>
+  <!-- 大腿 -->
+  <rect x="16" y="2" width="26" height="42" rx="10" fill="url(#klegGrad)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <!-- 护膝 -->
+  <ellipse cx="29" cy="26" rx="12" ry="9" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <!-- 小腿 -->
+  <rect x="18" y="42" width="22" height="36" rx="7" fill="url(#klegGrad)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <!-- 踢出的靴子（水平） -->
+  <rect x="10" y="74" width="46" height="18" rx="6" fill="url(#kshoeGrad)" stroke="#111" stroke-width="1.5"/>
+  <ellipse cx="50" cy="83" rx="10" ry="9" fill="url(#kshoeGrad)" stroke="#111" stroke-width="1.5"/>
+  <!-- 靴子高光 -->
+  <path d="M14 78 Q30 75 50 78" stroke="#888" stroke-width="1" fill="none" opacity="0.6"/>
+</svg>

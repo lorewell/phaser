@@ -15,7 +15,7 @@ jobs:
 
       # 2. 直接同步文件到服务器
       - name: Sync to Server
-        uses: eased7/ssh-deploy@v5
+        uses: easingthemes/ssh-deploy@v5
         with:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
           REMOTE_HOST: ${{ secrets.REMOTE_HOST }}

@@ -23,5 +23,5 @@ jobs:
           REMOTE_USER: ${{ secrets.REMOTE_USER }}
           SOURCE: "./"
           EXCLUDE: "/.git/, /.github/"
-          TARGET: "/opt/1panel/www/sites/games/index"
+          TARGET: "/opt/1panel/www/sites/games/index/index.html"
           ARGS: "-avz --delete"

@@ -11,7 +11,18 @@
         "usedAt": 1775807660335,
         "industryId": "12-GameDevelopment"
       }
+    ],
+    "20cfda48d6a84711926b9f77c26d06e8": [
+      {
+        "expertId": "GameDesigner",
+        "name": "玩法师",
+        "profession": "游戏设计师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/12-GameDevelopment/GameDesigner/GameDesigner.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/12-GameDevelopment/GameDesigner/GameDesigner_zh.md",
+        "usedAt": 1776310815467,
+        "industryId": "all"
+      }
     ]
   },
-  "lastUpdated": 1775812576374
+  "lastUpdated": 1776321402204
 }

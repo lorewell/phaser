@@ -1,5 +1,6 @@
 // =============================================
 //  Phaser 擂台对战 - 支持角色选择传入
+//  攻击系统已抽取到 attacks.js
 // =============================================
 
 const CANVAS_W = 600;
@@ -44,15 +45,13 @@ class GameScene extends Phaser.Scene {
     this.char2 = char2;
 
     // ---------- 背景 ----------
-    // 移除原本的实色背景，改为透明
     this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
 
     // ---------- 擂台 ----------
     const arena = this.add.graphics();
-    // 将擂台颜色也调成半透明，这样能隐约看到后面的背景图，更有层次感
     arena.fillStyle(0xffffff, 0.4); 
     arena.fillRect(ARENA_X, ARENA_Y, ARENA_SIZE, ARENA_SIZE);
-    arena.lineStyle(3, 0xffffff, 0.8); // 边框用白色更显眼
+    arena.lineStyle(3, 0xffffff, 0.8);
     arena.strokeRect(ARENA_X, ARENA_Y, ARENA_SIZE, ARENA_SIZE);
 
     // ---------- 标题 ----------
@@ -78,7 +77,7 @@ class GameScene extends Phaser.Scene {
       ARENA_Y + ARENA_SIZE * 0.5,
       char1,
       'P',
-      true  // 是玩家控制
+      true
     );
 
     this.player2 = this.createPlayer(
@@ -86,7 +85,7 @@ class GameScene extends Phaser.Scene {
       ARENA_Y + ARENA_SIZE * 0.5,
       char2,
       'C',
-      this.gameMode === 'pvp' // 如果是 PVP 模式，P2 也是玩家控制（虽然目前是 AI 逻辑，但界面可以区分）
+      this.gameMode === 'pvp'
     );
 
     // 赋予随机初速度
@@ -118,6 +117,18 @@ class GameScene extends Phaser.Scene {
 
     // ---------- 子弹组 ----------
     this.bullets = this.add.group();
+
+    // ---------- 初始化攻击系统 ----------
+    this.attackSystem = new AttackSystem(this, {
+      arenaX: ARENA_X,
+      arenaY: ARENA_Y,
+      arenaSize: ARENA_SIZE
+    });
+    
+    // ---------- 麻将翻牌攻击系统 (wuzhuzhu专用) ----------
+    this.mahjongAttackSystem = new MahjongAttackSystem(this, {
+      baseDamage: 100
+    });
 
     // ---------- 游戏结束状态 ----------
     this.gameOver = false;
@@ -154,11 +165,9 @@ class GameScene extends Phaser.Scene {
   createPlayer(x, y, char, label, isPlayer) {
     const container = this.add.container(x, y);
 
-    // 直接使用角色配置中的图片
     const body = this.add.image(0, 0, `char_img_${char.id}`);
     body.setDisplaySize(char.size, char.size);
 
-    // 角色名（头顶）
     const nameText = this.add.text(0, -char.size / 2 - 12, char.name, {
       fontSize: '11px',
       fontFamily: 'Arial',
@@ -188,21 +197,18 @@ class GameScene extends Phaser.Scene {
   createHpUI() {
     const y = CANVAS_H - 70;
 
-    // 玩家1 血条背景
     this.hpBarBg1 = this.add.graphics();
     this.hpBarFill1 = this.add.graphics();
     this.hpLabel1 = this.add.text(0, 0, '', {
       fontSize: '11px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5, 0.5);
 
-    // 玩家2 血条背景
     this.hpBarBg2 = this.add.graphics();
     this.hpBarFill2 = this.add.graphics();
     this.hpLabel2 = this.add.text(0, 0, '', {
       fontSize: '11px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
     }).setOrigin(0.5, 0.5);
 
-    // 角色名标签
     this.nameLabel1 = this.add.text(CANVAS_W / 2 - HP_BAR_W - 30, y, 
       `${this.char1.name} (你)`, {
       fontSize: '13px', color: '#' + this.char1.fillColor.toString(16).padStart(6, '0'), 
@@ -215,7 +221,6 @@ class GameScene extends Phaser.Scene {
       fontFamily: 'Arial', fontStyle: 'bold'
     }).setOrigin(0, 0.5);
 
-    // 攻击信息
     this.attackInfo1 = this.add.text(CANVAS_W / 2 - HP_BAR_W - 30, y + 18, 
       `⚔ ${this.char1.attack.name}`, {
       fontSize: '10px', color: '#666666', fontFamily: 'Arial'
@@ -232,7 +237,6 @@ class GameScene extends Phaser.Scene {
   drawHpBars() {
     const y = CANVAS_H - 70;
 
-    // 玩家1 血条
     const x1 = CANVAS_W / 2 - 20;
     this.hpBarBg1.clear();
     this.hpBarBg1.fillStyle(0xdddddd, 1);
@@ -249,7 +253,6 @@ class GameScene extends Phaser.Scene {
     this.hpLabel1.setPosition(x1 - HP_BAR_W / 2, y);
     this.hpLabel1.setText(`${Math.ceil(this.hp1)} / ${this.char1.maxHp}`);
 
-    // 玩家2 血条
     const x2 = CANVAS_W / 2 + 20;
     this.hpBarBg2.clear();
     this.hpBarBg2.fillStyle(0xdddddd, 1);
@@ -319,7 +322,6 @@ class GameScene extends Phaser.Scene {
     const player = this.player1;
     const char = cpu.char;
 
-    // 简单AI：根据角色类型决定行为
     const dx = player.x - cpu.x;
     const dy = player.y - cpu.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -340,18 +342,16 @@ class GameScene extends Phaser.Scene {
     if (char.attack.type === ATTACK_TYPE.RANGED) {
       const optimal = char.attack.distanceBonus?.optimalDistance || 150;
       if (dist < optimal - 50) {
-        // 太近了，尝试拉开
         cpu.vx = -Math.sign(dx) * char.speed * 0.8;
         cpu.vy = -Math.sign(dy) * char.speed * 0.8;
       } else if (dist > optimal + 50) {
-        // 太远了，靠近
         cpu.vx = Math.sign(dx) * char.speed * 0.6;
         cpu.vy = Math.sign(dy) * char.speed * 0.6;
       }
       return;
     }
 
-    // 其他角色：随机游走，偶尔向玩家靠近
+    // 其他角色：随机游走
     if (Math.random() < 0.02) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       cpu.vx = Math.cos(angle) * char.speed;
@@ -363,19 +363,16 @@ class GameScene extends Phaser.Scene {
     const char = player.char;
     let speed = char.speed;
 
-    // 影刃冲锋时速度加成
     if (player.isCharging && char.attack.type === ATTACK_TYPE.CHARGE) {
       speed *= char.attack.speedMultiplier;
     }
 
-    // 应用速度
     const vx = player.vx / char.speed * speed;
     const vy = player.vy / char.speed * speed;
 
     player.x += vx * dt;
     player.y += vy * dt;
 
-    // 边界
     const left = ARENA_X + char.size / 2;
     const right = ARENA_X + ARENA_SIZE - char.size / 2;
     const top = ARENA_Y + char.size / 2;
@@ -488,51 +485,28 @@ class GameScene extends Phaser.Scene {
         break;
 
       case ATTACK_TYPE.RANGED:
-        // 远程攻击：只要冷却好了就发射，不再受距离(range)限制导致的“哑火”
-        this.shootBullet(attacker, target);
+        // wuzhuzhu使用麻将翻牌系统
+        if (attacker.char.id === 'wuzhuzhu') {
+          this.mahjongAttackSystem.startAttack(attacker, target);
+        } else {
+          // 其他远程角色使用普通子弹
+          this.attackSystem.createBullet(attacker, target, attack);
+        }
         attacker.attackCooldown = attack.cooldown;
         break;
     }
   }
 
-  shootBullet(attacker, target) {
-    const attack = attacker.char.attack;
-    
-    // 创建一个黑色长方形作为子弹
-    const bullet = this.add.graphics();
-    bullet.fillStyle(0x000000, 1);
-    bullet.fillRect(-6, -2, 12, 4); // 长12，宽4
-    
-    // 给子弹添加一些属性
-    bullet.x = attacker.x;
-    bullet.y = attacker.y;
-    
-    // 计算指向目标的向量
-    const dx = target.x - attacker.x;
-    const dy = target.y - attacker.y;
-    const angle = Math.atan2(dy, dx);
-    bullet.rotation = angle;
-
-    const speed = attack.projectileSpeed || 400;
-    bullet.vx = Math.cos(angle) * speed;
-    bullet.vy = Math.sin(angle) * speed;
-    bullet.damage = attack.damage;
-    bullet.attacker = attacker;
-    bullet.target = target;
-    bullet.life = 2.0; // 子弹生存时间
-
-    this.bullets.add(bullet);
-  }
-
   updateBullets(dt) {
     this.bullets.getChildren().forEach(bullet => {
-      // 获取当前速度
-      const vx = bullet.vx;
-      const vy = bullet.vy;
-      
-      bullet.x += vx * dt;
-      bullet.y += vy * dt;
+      bullet.x += bullet.vx * dt;
+      bullet.y += bullet.vy * dt;
       bullet.life -= dt;
+      
+      // 麻将子弹旋转效果
+      if (bullet.isMahjong) {
+        bullet.rotation += bullet.rotationSpeed * dt;
+      }
 
       // 碰撞检测：子弹与目标
       const dx = bullet.target.x - bullet.x;
@@ -540,15 +514,13 @@ class GameScene extends Phaser.Scene {
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist < bullet.target.char.size / 2) {
-        // 命中
         let finalDamage = bullet.damage;
-        // 计算距离加成（如果配置里有）
         if (bullet.attacker.char.attack.distanceBonus) {
-           const launchDx = bullet.x - bullet.attacker.x;
-           const launchDy = bullet.y - bullet.attacker.y;
-           const traveled = Math.sqrt(launchDx * launchDx + launchDy * launchDy);
-           const bonusRatio = Math.min(traveled / bullet.attacker.char.attack.distanceBonus.optimalDistance, 1);
-           finalDamage += bullet.attacker.char.attack.distanceBonus.maxBonus * bonusRatio;
+          const launchDx = bullet.x - bullet.attacker.x;
+          const launchDy = bullet.y - bullet.attacker.y;
+          const traveled = Math.sqrt(launchDx * launchDx + launchDy * launchDy);
+          const bonusRatio = Math.min(traveled / bullet.attacker.char.attack.distanceBonus.optimalDistance, 1);
+          finalDamage += bullet.attacker.char.attack.distanceBonus.maxBonus * bonusRatio;
         }
 
         this.dealDamage(bullet.attacker, bullet.target, finalDamage);
@@ -595,13 +567,6 @@ class GameScene extends Phaser.Scene {
     });
   }
 
-  showShotLine(x1, y1, x2, y2) {
-    const line = this.add.graphics();
-    line.lineStyle(2, 0x22c55e, 0.8);
-    line.lineBetween(x1, y1, x2, y2);
-    this.time.delayedCall(100, () => line.destroy());
-  }
-
   flashPlayer(player) {
     player.bodyGraphics.setTint(0xffffff);
 
@@ -629,12 +594,10 @@ class GameScene extends Phaser.Scene {
       const winner = this.hp1 > 0 ? this.char1.name : this.char2.name;
       const isPlayerWin = this.hp1 > 0;
 
-      // 遮罩
       const overlay = this.add.graphics();
       overlay.fillStyle(0x000000, 0.7);
       overlay.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-      // 结果文字
       const resultText = isPlayerWin ? '🎉 胜利！' : '💀 失败';
       const color = isPlayerWin ? '#22c55e' : '#e94f3d';
 
@@ -651,7 +614,6 @@ class GameScene extends Phaser.Scene {
         color: '#ffffff',
       }).setOrigin(0.5, 0.5);
 
-      // 再来一局按钮
       this.createRestartButton();
     }
   }
@@ -704,7 +666,7 @@ const config = {
   type: Phaser.AUTO,
   width: CANVAS_W,
   height: CANVAS_H,
-  transparent: true, // 开启透明，允许看到底层的 HTML 背景或图片
+  transparent: true,
   scene: [MenuScene, CharacterSelectScene, GameScene],
   parent: document.body,
   antialias: true,

@@ -59,48 +59,51 @@ const CHARACTERS = {
   },
 
   // ========== 角色2：吴猪猪==========
-  // 定位：法师，远程输出，控制能力强
+  // 定位：法师，远程麻将攻击
   wuzhuzhu: {
     id: 'wuzhuzhu',
     name: '吴猪猪',
-    description: '身披重甲，防御惊人，受击时会反弹伤害',
+    description: '操控麻将攻击，旋转的麻将牌是她的致命武器',
     // 外观
     image: './assets/characters/wuzhuzhu.png',
     fillColor: 0xe94f3d,   // 红色
     strokeColor: 0xa82010,
     // 基础属性（平衡总分：速度+血量=420）
-    maxHp: 250,            // 最高血量
-    speed: 140,            // 最慢速度
-    size: 90,             // 增大体型
-    // 进攻手段：反震冲击
+    maxHp: 240,            // 中等血量
+    speed: 160,            // 较慢速度
+    size: 85,             // 较大体型
+    // 进攻手段：麻将飞射
     attack: {
-      type: ATTACK_TYPE.AURA,
-      name: '钢铁反震',
-      description: '受到伤害时反弹伤害，主动释放造成范围伤害',
-      damage: 12,            // 中等伤害
-      cooldown: 1.2,         // 冷却较长
-      range: 90,             // 范围伤害
-      // 特殊：被动反伤
-      passive: {
-        reflectPercent: 0.25 // 反弹25%受到伤害
-      }
+      type: ATTACK_TYPE.RANGED,
+      name: '飞牌绝技',
+      description: '发射旋转的麻将牌攻击敌人',
+      damage: 18,            // 中等伤害
+      cooldown: 1.0,         // 中等冷却
+      range: 300,           // 远程射程
+      // 特殊：距离加成
+      distanceBonus: {
+        maxBonus: 12,        // 最大额外伤害
+        optimalDistance: 200 // 最佳距离
+      },
+      // 投射物速度
+      projectileSpeed: 350
     },
-    // 大招：绝对防御
+    // 大招：麻将风暴
     ultimate: {
-      name: '绝对防御',
-      description: '获得护盾，免疫所有伤害，反弹200%伤害，持续4秒',
+      name: '麻将风暴',
+      description: '召唤麻将雨，对全擂台持续造成伤害',
       // 蓄力需求
-      maxEnergy: 120,          // 坦克需要更多能量（因为挨打多，充能快）
+      maxEnergy: 100,
       // 被动充能（每秒）
-      passiveCharge: 2,
+      passiveCharge: 2.5,
       // 造成伤害充能比例
-      damageDealtCharge: 0.5,
-      // 受到伤害充能比例（坦克挨打多，这个高）
-      damageTakenCharge: 1.5,  // 受到100伤害充能150
+      damageDealtCharge: 0.8,
+      // 受到伤害充能比例
+      damageTakenCharge: 1.0,
       // 效果
-      duration: 4000,
-      damageReduction: 1.0,    // 100%减伤（无敌）
-      reflectMultiplier: 2.0   // 反弹200%
+      duration: 3000,
+      damagePerMahjong: 15,
+      mahjongCount: 12
     }
   },
 

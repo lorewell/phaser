@@ -1,9 +1,9 @@
-name: Phaser Deploy
+name: Main Phaser Deploy
 
 on:
   push:
     branches:
-      - 'demo/**'
+      - 'main'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -12,9 +12,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Extract Short Branch Name
-        run: echo "BRANCH_NAME=${GITHUB_REF_NAME#demo/}" >> $GITHUB_ENV
-
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -26,5 +23,5 @@ jobs:
           REMOTE_USER: ${{ secrets.REMOTE_USER }}
           SOURCE: "./"
           EXCLUDE: "/.git/, /.github/"
-          TARGET: "/opt/1panel/www/sites/games/index/${{ env.BRANCH_NAME }}"
+          TARGET: "/opt/1panel/www/sites/games/index"
           ARGS: "-avz --delete"

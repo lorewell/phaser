@@ -1,10 +1,9 @@
-name: Simple Phaser Deploy
+name: Phaser Deploy
 
 on:
   push:
     branches:
-      - main
-      - 'game-*'
+      - 'demo/**'
 
 jobs:
   deploy:
@@ -23,7 +22,7 @@ jobs:
           REMOTE_USER: ${{ secrets.REMOTE_USER }}
           # 因为你没有编译过程，SOURCE 填 "." 代表上传整个仓库内容
           # 但为了干净，我们排除掉 .git 和 .github 文件夹
-          SOURCE: "./" 
+          SOURCE: "./"
           EXCLUDE: "/.git/, /.github/"
           # 目标路径依然保持不变
           TARGET: "/opt/1panel/www/sites/games/index/${{ github.ref_name }}"

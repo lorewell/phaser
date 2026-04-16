@@ -28,5 +28,5 @@ jobs:
           SOURCE: "./"
           EXCLUDE: "/.git/, /.github/"
           # 目标路径依然保持不变
-          TARGET: "/opt/1panel/www/sites/games/index/${{ github.ref_name }}"
+          TARGET: "/opt/1panel/www/sites/games/index/chinese-chess"
           ARGS: "-avz --delete"

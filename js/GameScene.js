@@ -10,11 +10,10 @@
         // 棋盘交叉点列数 9、行数 10
         this.COLS = 9;
         this.ROWS = 10;
-        // 游戏逻辑分辨率
-        this.SCENE_W = 500;
-        this.SCENE_H = 700;
 
         // 以下在 create() 中计算
+        this.SCENE_W = 500;
+        this.SCENE_H = 700;
         this.OFFSET_X = 0;
         this.OFFSET_Y = 0;
         this.PIECE_SIZE = this.CS - 4;
@@ -42,23 +41,42 @@
     }
 
     create() {
-        this.cameras.main.setBackgroundColor("#1a1008");
+        // 左右边距
+        const MARGIN_X = 30;
+        const isMobile = this.cameras.main.width < 450;
+        const marginX = isMobile ? 15 : MARGIN_X;
 
-        const CS   = this.CS;
-        const PAD  = this.PAD;
+        // 计算所需最小宽度，宽度不够时增加
+        const CS = this.CS;
+        const PAD = this.PAD;
         const COLS = this.COLS;
         const ROWS = this.ROWS;
 
-        const boardW = (COLS - 1) * CS;  // 8 * 46 = 368
-        const boardH = (ROWS - 1) * CS;  // 9 * 46 = 414
-        const totalW = boardW + PAD * 2; // 368 + 46 = 414
-        const totalH = boardH + PAD * 2; // 414 + 46 = 460
+        const boardW = (COLS - 1) * CS;
+        const boardH = (ROWS - 1) * CS;
+        const totalW = boardW + PAD * 2;
 
-        const boardX = Math.floor((this.SCENE_W - totalW) / 2); // 43
-        const boardY = Math.floor((this.SCENE_H - totalH) / 2); // 120
+        // 实际可用宽度
+        let sceneW = this.cameras.main.width;
+        let sceneH = this.cameras.main.height;
 
-        this.OFFSET_X = boardX + PAD; // 66
-        this.OFFSET_Y = boardY + PAD; // 143
+        // 宽度不够时增加
+        const minWidth = totalW + marginX * 2;
+        if (sceneW < minWidth) {
+            sceneW = minWidth;
+        }
+
+        this.SCENE_W = sceneW;
+        this.SCENE_H = sceneH;
+
+        const boardX = Math.floor(marginX);
+        const boardY = Math.floor((sceneH - (boardH + PAD * 2)) / 2);
+
+        // 绘制棋盘格背景（填满整个画布）
+        this.drawPixelBackground(sceneW, sceneH);
+
+        this.OFFSET_X = boardX + PAD;
+        this.OFFSET_Y = boardY + PAD;
 
         this.drawBoard(boardX, boardY, boardW, boardH);
 
@@ -71,6 +89,42 @@
         this.initChessPieces();
         this.createUndoButton();
         this.createMuteButton();
+    }
+
+    drawPixelBackground(drawWidth, drawHeight) {
+        const width = drawWidth || this.SCENE_W;
+        const height = drawHeight || this.SCENE_H;
+        const isMobile = width < 450;
+        const tileSize = isMobile ? 16 : 20;
+
+        const graphics = this.add.graphics();
+
+        // 深色木纹底
+        graphics.fillStyle(0x2c1e14, 1);
+        graphics.fillRect(0, 0, width, height);
+
+        // 棋盘格纹理
+        for (let y = 0; y < height; y += tileSize) {
+            for (let x = 0; x < width; x += tileSize) {
+                const isEven = ((x / tileSize) + (y / tileSize)) % 2 === 0;
+                graphics.fillStyle(isEven ? 0x3d2a1a : 0x352417, 1);
+                graphics.fillRect(x, y, tileSize, tileSize);
+            }
+        }
+
+        // 顶部渐变
+        const topFade = this.add.graphics();
+        for (let i = 0; i < 60; i++) {
+            topFade.fillStyle(0x1a1208, 1 - i / 60);
+            topFade.fillRect(0, i, width, 1);
+        }
+
+        // 底部渐变
+        const bottomFade = this.add.graphics();
+        for (let i = 0; i < 60; i++) {
+            bottomFade.fillStyle(0x1a1208, i / 60);
+            bottomFade.fillRect(0, height - 60 + i, width, 1);
+        }
     }
 
     drawBoard(boardX, boardY, boardW, boardH) {
@@ -179,8 +233,8 @@
     }
 
     createUndoButton() {
-        const x = this.SCENE_W / 2;
-        const y = this.SCENE_H - 36;
+        const x = this.cameras.main.width / 2;
+        const y = this.cameras.main.height - 36;
 
         const btnBg = this.add.rectangle(x, y, 120, 40, 0x5c3010)
             .setStrokeStyle(3, 0xd4a355)
@@ -199,7 +253,7 @@
     }
 
     createMuteButton() {
-        const x = this.SCENE_W - 28;
+        const x = this.cameras.main.width - 28;
         const y = 28;
         const size = 36;
 

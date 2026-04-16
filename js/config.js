@@ -1,7 +1,11 @@
+// 棋盘宽度 = (9-1)*46 + 46(边距) + 60(左右各30px边距) = 474
+const BASE_WIDTH = 500;
+const BASE_HEIGHT = 700;
+
 const config = {
     type: Phaser.AUTO,
-    width: 500,
-    height: 700,
+    width: BASE_WIDTH,
+    height: BASE_HEIGHT,
     parent: 'game-container',
     pixelArt: true,
     audio: {
@@ -9,7 +13,8 @@ const config = {
     },
     scale: {
         mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        expandParent: false
     },
     scene: [MenuScene, GameScene]
 };

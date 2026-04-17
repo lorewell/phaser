@@ -233,45 +233,85 @@
     }
 
     createUndoButton() {
+        const isMobile = this.cameras.main.width < 450;
         const x = this.cameras.main.width / 2;
-        const y = this.cameras.main.height - 36;
+        const y = this.cameras.main.height - (isMobile ? 50 : 36);
+        const btnW = isMobile ? 100 : 120;
+        const btnH = isMobile ? 36 : 40;
 
-        const btnBg = this.add.rectangle(x, y, 120, 40, 0x5c3010)
-            .setStrokeStyle(3, 0xd4a355)
+        // 像素风格按钮
+        const btnBg = this.add.rectangle(x, y, btnW, btnH, 0x4a3728)
             .setInteractive({ useHandCursor: true });
 
+        // 按钮边框
+        const border = this.add.graphics();
+        border.lineStyle(2, 0xd4a355, 0.6);
+        border.strokeRect(x - btnW/2, y - btnH/2, btnW, btnH);
+
+        // 按钮高光
+        const highlight = this.add.graphics();
+        highlight.fillStyle(0xf0d9b5, 0.08);
+        highlight.fillRect(x - btnW/2 + 4, y - btnH/2 + 3, btnW - 8, 3);
+
         this.add.text(x, y, "悔  棋", {
-            fontSize   : "20px",
+            fontSize   : isMobile ? "16px" : "18px",
             color      : "#f0d9b5",
             fontFamily : "'Zpix', monospace",
             resolution : 2
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(1);
 
-        btnBg.on("pointerover", () => btnBg.setFillStyle(0x8a4a1a));
-        btnBg.on("pointerout",  () => btnBg.setFillStyle(0x5c3010));
-        btnBg.on("pointerdown", () => this.undo());
+        btnBg.on("pointerover", () => {
+            btnBg.setFillStyle(0x5c4a38);
+            border.clear();
+            border.lineStyle(2, 0xd4a355, 0.9);
+            border.strokeRect(x - btnW/2, y - btnH/2, btnW, btnH);
+        });
+        btnBg.on("pointerout",  () => {
+            btnBg.setFillStyle(0x4a3728);
+            border.clear();
+            border.lineStyle(2, 0xd4a355, 0.6);
+            border.strokeRect(x - btnW/2, y - btnH/2, btnW, btnH);
+        });
+        btnBg.on("pointerdown", () => {
+            btnBg.setFillStyle(0x6b5a48);
+            this.undo();
+        });
     }
 
     createMuteButton() {
-        const x = this.cameras.main.width - 28;
-        const y = 28;
-        const size = 36;
+        const isMobile = this.cameras.main.width < 450;
+        const x = this.cameras.main.width - (isMobile ? 20 : 28);
+        const y = isMobile ? 24 : 28;
+        const size = isMobile ? 32 : 36;
 
-        // 按钮背景
-        const btnBg = this.add.circle(x, y, size / 2, 0x000000, 0.35);
+        // 像素风格背景
+        const btnBg = this.add.rectangle(x, y, size, size, 0x000000, 0.4);
+        const border = this.add.graphics();
+        border.lineStyle(2, 0xd4a355, 0.4);
+        border.strokeRect(x - size/2, y - size/2, size, size);
 
-        // 音符图标（未静音）/ 禁音图标（静音）
-        const icon = this.add.text(x, y,
+        // 音符图标（像素风格）
+        const icon = this.add.text(x, y - 1,
             audioConfig.muted ? '🔇' : '🔊',
-            { fontSize: '18px', resolution: 2 }
+            { fontSize: isMobile ? '14px' : '16px', resolution: 2 }
         ).setOrigin(0.5);
 
         // 交互区域
-        const hitArea = this.add.circle(x, y, size / 2, 0xffffff, 0)
+        const hitArea = this.add.rectangle(x, y, size, size, 0xffffff, 0)
             .setInteractive({ useHandCursor: true });
 
-        hitArea.on('pointerover', () => btnBg.setFillStyle(0x000000, 0.55));
-        hitArea.on('pointerout',  () => btnBg.setFillStyle(0x000000, 0.35));
+        hitArea.on('pointerover', () => {
+            btnBg.setFillStyle(0x000000, 0.6);
+            border.clear();
+            border.lineStyle(2, 0xd4a355, 0.8);
+            border.strokeRect(x - size/2, y - size/2, size, size);
+        });
+        hitArea.on('pointerout',  () => {
+            btnBg.setFillStyle(0x000000, 0.4);
+            border.clear();
+            border.lineStyle(2, 0xd4a355, 0.4);
+            border.strokeRect(x - size/2, y - size/2, size, size);
+        });
         hitArea.on('pointerdown', () => {
             audioConfig.muted = !audioConfig.muted;
             icon.setText(audioConfig.muted ? '🔇' : '🔊');

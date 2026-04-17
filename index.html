@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0d0d0d">
     <title>My Games</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         * {
@@ -20,6 +22,12 @@
             --muted: #666;
             --border: #2a2a2a;
             --accent: #4a9eff;
+            --bg-hover: #1a1a1a;
+            color-scheme: dark;
+        }
+
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
@@ -34,6 +42,8 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 80px 24px;
+            padding-top: calc(80px + env(safe-area-inset-top));
+            padding-bottom: calc(80px + env(safe-area-inset-bottom));
         }
 
         header {
@@ -59,7 +69,7 @@
         .games-list {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 12px;
         }
 
         .game-item {
@@ -72,12 +82,19 @@
             border-radius: 8px;
             text-decoration: none;
             color: inherit;
-            transition: all 0.2s;
+            transition: border-color 0.2s, background-color 0.2s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .game-item:hover {
             border-color: var(--accent);
-            background: #1a1a1a;
+            background: var(--bg-hover);
+        }
+
+        .game-item:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
         }
 
         .game-item.disabled {
@@ -94,6 +111,7 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
+            min-width: 0;
         }
 
         .game-name {
@@ -104,9 +122,13 @@
         .game-url {
             color: var(--muted);
             font-size: 0.8rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .game-status {
+            flex-shrink: 0;
             font-size: 0.75rem;
             padding: 4px 10px;
             border-radius: 4px;
@@ -135,16 +157,41 @@
             text-decoration: none;
         }
 
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        footer a:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 2px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                transition-duration: 0.01ms !important;
+                animation-duration: 0.01ms !important;
+            }
+            html {
+                scroll-behavior: auto;
+            }
+        }
+
         @media (max-width: 640px) {
             .container {
                 padding: 40px 16px;
+                padding-top: calc(40px + env(safe-area-inset-top));
+                padding-bottom: calc(40px + env(safe-area-inset-bottom));
             }
 
             .game-item {
                 padding: 16px;
-                flex-direction: column;
-                align-items: flex-start;
                 gap: 12px;
+                min-height: 72px;
+            }
+
+            .game-status {
+                padding: 6px 12px;
             }
         }
     </style>
@@ -156,10 +203,12 @@
             <p class="muted">// personal projects</p>
         </header>
 
-        <div id="games-list" class="games-list"></div>
+        <nav aria-label="游戏列表">
+            <div id="games-list" class="games-list"></div>
+        </nav>
 
         <footer>
-            <p>built with <a href="https://phaser.io" target="_blank">Phaser.js</a></p>
+            <p>built with <a href="https://phaser.io" target="_blank" rel="noopener noreferrer">Phaser.js</a></p>
         </footer>
     </div>
 
@@ -181,12 +230,7 @@
                 status: 'online'
             },
             {
-                name: '贪吃蛇',
-                url: '#',
-                status: 'coming'
-            },
-            {
-                name: '俄罗斯方块',
+                name: '更多游戏',
                 url: '#',
                 status: 'coming'
             }
@@ -197,10 +241,11 @@
             container.innerHTML = GAMES.map(game => `
                 <a href="${game.url}" 
                    class="game-item ${game.url === '#' ? 'disabled' : ''}"
-                   ${game.url === '#' ? 'onclick="return false;"' : ''}>
+                   ${game.url === '#' ? 'aria-disabled="true" tabindex="0" onclick="return false;"' : 'rel="noopener noreferrer"'}
+                   aria-label="${game.name} - ${game.status === 'online' ? '在线' : '开发中'}">
                     <div class="game-info">
                         <span class="game-name">${game.name}</span>
-                        <span class="game-url">${game.url === '#' ? 'wip...' : game.url}</span>
+                        <span class="game-url">${game.url === '#' ? 'wip…' : game.url}</span>
                     </div>
                     <span class="game-status ${game.status}">${game.status === 'online' ? 'online' : 'wip'}</span>
                 </a>

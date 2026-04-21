@@ -101,9 +101,9 @@ const COMBO_CONFIG = {
 // 翻牌位数量
 const HAND_SIZE = 6;
 
-// 麻将尺寸
-const MJ_CARD_W = 50;
-const MJ_CARD_H = 70;
+// 麻将尺寸（响应式，会根据人物大小调整）
+let MJ_CARD_W = 50;
+let MJ_CARD_H = 70;
 
 // =============================================
 //  牌池管理
@@ -279,13 +279,27 @@ class MahjongAttackSystem {
     this.cardGraphics = [];
   }
 
-  initUI(centerX, centerY) {
-    const spacing = MJ_CARD_W + 15;
+  initUI(attacker) {
+    // 根据攻击者体型调整麻将牌尺寸
+    const charSize = attacker.char.size || 80;
+    // 缩放比例：让 UI 总宽度与人物宽度相近
+    const targetWidth = charSize * 1.0;
+    const currentTotalWidth = (HAND_SIZE - 1) * (MJ_CARD_W + 15) + MJ_CARD_W;
+    const scale = Math.min(targetWidth / currentTotalWidth, 1.2); // 最大放大1.2倍
+    
+    MJ_CARD_W = Math.round(50 * scale);
+    MJ_CARD_H = Math.round(70 * scale);
+    
+    const spacing = MJ_CARD_W + Math.round(15 * scale);
     const totalWidth = (HAND_SIZE - 1) * spacing;
-    const startX = centerX - totalWidth / 2;
+    // 水平居中对齐攻击者
+    const startX = attacker.x - totalWidth / 2;
+    // 固定在人物底下（人物下方约10px）
+    const y = attacker.y + charSize / 2 + 10;
+    
     this.slotPositions = [];
     for (let i = 0; i < HAND_SIZE; i++) {
-      this.slotPositions.push({ x: startX + i * spacing, y: centerY });
+      this.slotPositions.push({ x: startX + i * spacing, y });
     }
   }
 
@@ -293,7 +307,8 @@ class MahjongAttackSystem {
     if (this.isAttacking) return;
     this.isAttacking = true;
 
-    this.initUI(CANVAS_W / 2, CANVAS_H / 2 - 50);
+    // 根据攻击者位置和体型初始化 UI
+    this.initUI(attacker);
     this.currentHand = this.deck.draw(HAND_SIZE);
     this.dora = MAHJONG_DEFS[Math.floor(Math.random() * MAHJONG_DEFS.length)];
 
@@ -303,7 +318,7 @@ class MahjongAttackSystem {
     const result = recognizer.recognize();
     const damage = this.calculateDamage(result);
 
-    await this.showDamageEffect(damage, result);
+    await this.showDamageEffect(damage, result, attacker);
     this.scene.dealDamage(attacker, target, damage);
     await this.cleanupUI();
 
@@ -418,30 +433,35 @@ class MahjongAttackSystem {
     return Math.floor(damage);
   }
 
-  async showDamageEffect(damage, result) {
-    const centerX = CANVAS_W / 2;
-    const centerY = CANVAS_H / 2 - 80;
+  async showDamageEffect(damage, result, attacker) {
+    // 显示在攻击者上方
+    const charSize = attacker.char.size || 80;
+    const centerX = attacker.x;
+    const baseY = attacker.y - charSize / 2 - 30;
 
-    const patternText = this.scene.add.text(centerX, centerY, `${result.pattern.name} x${result.multiplier}`, {
-      fontSize: '24px', fontFamily: 'SimHei, sans-serif', color: '#ffd700',
+    const patternText = this.scene.add.text(centerX, baseY, `${result.pattern.name} x${result.multiplier}`, {
+      fontSize: Math.round(18 * (charSize / 80)) + 'px', 
+      fontFamily: 'SimHei, sans-serif', color: '#ffd700',
+      fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
+    }).setOrigin(0.5, 0.5).setAlpha(0);
+
+    const damageText = this.scene.add.text(centerX, baseY + 28, `${damage}`, {
+      fontSize: Math.round(36 * (charSize / 80)) + 'px', 
+      fontFamily: 'Arial Black, sans-serif', color: '#ff4444',
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 4
     }).setOrigin(0.5, 0.5).setAlpha(0);
 
-    const damageText = this.scene.add.text(centerX, centerY + 40, `${damage}`, {
-      fontSize: '48px', fontFamily: 'Arial Black, sans-serif', color: '#ff4444',
-      fontStyle: 'bold', stroke: '#000000', strokeThickness: 6
-    }).setOrigin(0.5, 0.5).setAlpha(0);
-
     this.scene.tweens.add({
-      targets: [patternText, damageText], alpha: 1, y: '-=20', duration: 300, ease: 'Power2'
+      targets: [patternText, damageText], alpha: 1, y: '-=15', duration: 300, ease: 'Power2'
     });
 
     if (this.combo >= 2) {
       const level = Math.min(this.combo, 5);
       const config = COMBO_CONFIG[level];
-      const comboText = this.scene.add.text(centerX, centerY + 80, `${config.name} x${config.multiplier}`, {
-        fontSize: '18px', fontFamily: 'SimHei, sans-serif', color: '#ff6600',
-        fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
+      const comboText = this.scene.add.text(centerX, baseY + 56, `${config.name} x${config.multiplier}`, {
+        fontSize: Math.round(14 * (charSize / 80)) + 'px', 
+        fontFamily: 'SimHei, sans-serif', color: '#ff6600',
+        fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
       }).setOrigin(0.5, 0.5).setAlpha(0);
       this.scene.tweens.add({ targets: comboText, alpha: 1, duration: 200 });
       await new Promise(r => this.scene.time.delayedCall(1500, r));

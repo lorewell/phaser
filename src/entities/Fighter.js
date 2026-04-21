@@ -147,10 +147,12 @@ class Fighter {
         this.armContainer.x = 22 * this.facing;
         this.armContainer.y = -55;
         this.armContainer.angle = 0;
+        this.armImg.setScale(1, 1);  // 重置横向伸展
         this.kickLeg.x = 14 * this.facing;
         this.kickLeg.y = -15;
         this.kickLeg.angle = 0;
         this.kickLeg.setVisible(false);
+        this.kickLegImg.setScale(1, 1);  // 重置横向伸展
         this.legsImg.setVisible(true);
     }
 }

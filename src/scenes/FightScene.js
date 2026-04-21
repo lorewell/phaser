@@ -167,61 +167,32 @@ class FightScene extends Phaser.Scene {
     _playStartup(fighter, type) {
         switch (type) {
             case ATTACK_TYPES.PUNCH:
-                this.tweens.add({
-                    targets: fighter.armContainer,
-                    x: -18 * fighter.facing,
-                    duration: GAME_CONFIG.attack.punch.startup * 0.8,
-                    ease: 'Power1'
-                });
+                // 手臂先缩回准备
+                fighter.armImg.setScale(0.1, 1);
                 break;
 
             case ATTACK_TYPES.KICK:
                 fighter.kickLeg.setVisible(true);
                 fighter.legsImg.setVisible(false);
-                this.tweens.add({
-                    targets: fighter.kickLeg,
-                    x: -10 * fighter.facing,
-                    angle: -30 * fighter.facing,
-                    duration: GAME_CONFIG.attack.kick.startup * 0.8,
-                    ease: 'Power1'
-                });
+                // 腿缩回准备
+                fighter.kickLegImg.setScale(0.1, 1);
                 break;
 
             case ATTACK_TYPES.RISING:
-                // 手臂抬高，身体下蹲准备
-                this.tweens.add({
-                    targets: fighter.armContainer,
-                    x: -5 * fighter.facing,
-                    y: -70,
-                    angle: -40 * fighter.facing,
-                    duration: GAME_CONFIG.attack.rising.startup * 0.9,
-                    ease: 'Power2'
-                });
+                // 升龙：手臂缩回准备
+                fighter.armImg.setScale(0.1, 1);
                 break;
 
             case ATTACK_TYPES.AIR_PUNCH:
-                // 空中向前伸拳
-                this.tweens.add({
-                    targets: fighter.armContainer,
-                    x: -15 * fighter.facing,
-                    y: -50,
-                    duration: GAME_CONFIG.attack.airpunch.startup * 0.7,
-                    ease: 'Power1'
-                });
+                // 空中出拳：手臂缩回
+                fighter.armImg.setScale(0.1, 1);
                 break;
 
             case ATTACK_TYPES.AIR_KICK:
-                // 收腿准备下踹
+                // 空中踢腿：腿缩回
                 fighter.kickLeg.setVisible(true);
                 fighter.legsImg.setVisible(false);
-                this.tweens.add({
-                    targets: fighter.kickLeg,
-                    x: 5 * fighter.facing,
-                    y: -40,
-                    angle: 0,
-                    duration: GAME_CONFIG.attack.airkick.startup * 0.7,
-                    ease: 'Power2'
-                });
+                fighter.kickLegImg.setScale(0.1, 1);
                 break;
         }
     }
@@ -230,19 +201,20 @@ class FightScene extends Phaser.Scene {
     _playActive(fighter, type) {
         switch (type) {
             case ATTACK_TYPES.PUNCH:
+                // 横向伸展手臂（从0到1）
                 this.tweens.add({
-                    targets: fighter.armContainer,
-                    x: 52 * fighter.facing,
+                    targets: fighter.armImg,
+                    scaleX: 1,
                     duration: GAME_CONFIG.attack.punch.activeFrames * 0.5,
                     ease: 'Power3'
                 });
                 break;
 
             case ATTACK_TYPES.KICK:
+                // 横向伸展踢腿（从0到1）
                 this.tweens.add({
-                    targets: fighter.kickLeg,
-                    x: 60 * fighter.facing,
-                    angle: 30 * fighter.facing,
+                    targets: fighter.kickLegImg,
+                    scaleX: 1,
                     duration: GAME_CONFIG.attack.kick.activeFrames * 0.5,
                     ease: 'Power3'
                 });
@@ -252,11 +224,10 @@ class FightScene extends Phaser.Scene {
                 // 向上冲拳 + 身体上升
                 fighter.body.setVelocityY(GAME_CONFIG.attack.rising.riseVY);
                 fighter.body.setVelocityX(60 * fighter.facing);
+                // 升龙手臂横向伸展
                 this.tweens.add({
-                    targets: fighter.armContainer,
-                    x: 30 * fighter.facing,
-                    y: -100,
-                    angle: 30 * fighter.facing,
+                    targets: fighter.armImg,
+                    scaleX: 1,
                     duration: 200,
                     ease: 'Power3'
                 });
@@ -268,9 +239,8 @@ class FightScene extends Phaser.Scene {
                 // 向前猛冲拳
                 fighter.body.setVelocityX(fighter.body.velocity.x + 120 * fighter.facing);
                 this.tweens.add({
-                    targets: fighter.armContainer,
-                    x: 60 * fighter.facing,
-                    y: -52,
+                    targets: fighter.armImg,
+                    scaleX: 1,
                     duration: GAME_CONFIG.attack.airpunch.activeFrames * 0.45,
                     ease: 'Power3'
                 });
@@ -280,9 +250,8 @@ class FightScene extends Phaser.Scene {
                 // 腿向下猛踹
                 fighter.body.setVelocityY(200); // 下压加速
                 this.tweens.add({
-                    targets: fighter.kickLeg,
-                    y: 20,
-                    angle: 15 * fighter.facing,
+                    targets: fighter.kickLegImg,
+                    scaleX: 1,
                     duration: GAME_CONFIG.attack.airkick.activeFrames * 0.45,
                     ease: 'Power3'
                 });
@@ -296,8 +265,8 @@ class FightScene extends Phaser.Scene {
             case ATTACK_TYPES.PUNCH:
             case ATTACK_TYPES.AIR_PUNCH:
                 this.tweens.add({
-                    targets: fighter.armContainer,
-                    x: 22 * fighter.facing, y: -55, angle: 0,
+                    targets: fighter.armImg,
+                    scaleX: 1,
                     duration: 130, ease: 'Power1'
                 });
                 break;
@@ -305,8 +274,8 @@ class FightScene extends Phaser.Scene {
             case ATTACK_TYPES.KICK:
             case ATTACK_TYPES.AIR_KICK:
                 this.tweens.add({
-                    targets: fighter.kickLeg,
-                    x: 14 * fighter.facing, y: -15, angle: 0,
+                    targets: fighter.kickLegImg,
+                    scaleX: 1,
                     duration: 160, ease: 'Power1',
                     onComplete: () => {
                         fighter.kickLeg.setVisible(false);
@@ -317,8 +286,8 @@ class FightScene extends Phaser.Scene {
 
             case ATTACK_TYPES.RISING:
                 this.tweens.add({
-                    targets: fighter.armContainer,
-                    x: 22 * fighter.facing, y: -55, angle: 0,
+                    targets: fighter.armImg,
+                    scaleX: 1,
                     duration: 200, ease: 'Power1'
                 });
                 break;

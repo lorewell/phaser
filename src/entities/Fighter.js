@@ -37,11 +37,11 @@ class Fighter {
         this.legsImg.setDisplaySize(70, 65);
 
         // 身体
-        this.torso = this.scene.add.image(0, -52, `${pid}_torso`);
+        this.torso = this.scene.add.image(2 * this.facing, -52, `${pid}_torso`);
         this.torso.setDisplaySize(60, 72);
 
         // 头部
-        this.head = this.scene.add.image(0, -88, `${pid}_head`);
+        this.head = this.scene.add.image(4 * this.facing, -88, `${pid}_head`);
         this.head.setDisplaySize(58, 58);
 
         // 手臂容器（待机状态用 arm.svg）
@@ -60,6 +60,14 @@ class Fighter {
         // 受击闪光（保留原有逻辑）
         this.hitFlash = this.scene.add.rectangle(0, -40, 44, 88, 0xffffff, 0);
 
+        // 攻击时的手臂（水平出拳用）
+        this.armPunch = this.scene.add.container(18 * this.facing, -55);
+        this.armPunchImg = this.scene.add.image(0, 0, `${pid}_arm_punch`);
+        this.armPunchImg.setDisplaySize(72, 32);
+        this.armPunch.add(this.armPunchImg);
+        this.armPunch.setVisible(false);
+        this.container.add(this.armPunch);
+
         // 镜像朝向（P2 初始面朝左）
         if (this.facing === -1) {
             this.legsImg.setFlipX(true);
@@ -67,6 +75,7 @@ class Fighter {
             this.head.setFlipX(true);
             this.armImg.setFlipX(true);
             this.kickLegImg.setFlipX(true);
+            this.armPunchImg.setFlipX(true);
         }
 
         this.container.add([
@@ -75,6 +84,7 @@ class Fighter {
             this.hitFlash,
             this.kickLeg,
             this.armContainer,
+            this.armPunch,
             this.head,
         ]);
 
@@ -93,15 +103,26 @@ class Fighter {
     updateFacing(facing) {
         if (this.facing === facing) return;
         this.facing = facing;
-        this.armContainer.x = 22 * facing;
-        this.kickLeg.x      = 14 * facing;
-        // 精灵图水平翻转
+
         const flip = facing === -1;
+
+        // 身体部件水平翻转
         this.legsImg.setFlipX(flip);
         this.torso.setFlipX(flip);
         this.head.setFlipX(flip);
         this.armImg.setFlipX(flip);
         this.kickLegImg.setFlipX(flip);
+
+        // 根据朝向调整各部件的水平位置（镜像对称）
+        this.armContainer.x = 22 * facing;
+        this.armPunch.x     = 18 * facing;
+        this.kickLeg.x      = 14 * facing;
+
+        // 头部微微偏移，使面向更自然
+        this.head.x = 4 * facing;
+
+        // 躯干微微扭转
+        this.torso.x = 2 * facing;
     }
 
     setBlockVisual(blocking) {
@@ -110,6 +131,7 @@ class Fighter {
         this.torso.setTint(tint);
         this.legsImg.setTint(tint);
         this.armImg.setTint(tint);
+        this.armPunchImg.setTint(tint);
     }
 
     showHitFlash() {
@@ -140,6 +162,7 @@ class Fighter {
         this.torso.clearTint();
         this.legsImg.clearTint();
         this.armImg.clearTint();
+        this.armPunchImg.clearTint();
     }
 
     // 重置姿势
@@ -148,11 +171,20 @@ class Fighter {
         this.armContainer.y = -55;
         this.armContainer.angle = 0;
         this.armImg.setScale(1, 1);  // 重置横向伸展
+        this.armPunch.x = 18 * this.facing;
+        this.armPunch.y = -55;
+        this.armPunch.angle = 0;
+        this.armPunch.setVisible(false);
+        this.armPunchImg.setScale(1, 1);
         this.kickLeg.x = 14 * this.facing;
         this.kickLeg.y = -15;
         this.kickLeg.angle = 0;
         this.kickLeg.setVisible(false);
         this.kickLegImg.setScale(1, 1);  // 重置横向伸展
         this.legsImg.setVisible(true);
+
+        // 重置朝向相关偏移
+        this.head.x = 4 * this.facing;
+        this.torso.x = 2 * this.facing;
     }
 }

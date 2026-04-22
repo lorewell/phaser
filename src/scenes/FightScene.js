@@ -167,8 +167,10 @@ class FightScene extends Phaser.Scene {
     _playStartup(fighter, type) {
         switch (type) {
             case ATTACK_TYPES.PUNCH:
-                // 手臂先缩回准备
-                fighter.armImg.setScale(0.1, 1);
+                // 切换到水平出拳手臂，缩回准备
+                fighter.armContainer.setVisible(false);
+                fighter.armPunch.setVisible(true);
+                fighter.armPunchImg.setScale(0.1, 1);
                 break;
 
             case ATTACK_TYPES.KICK:
@@ -179,13 +181,15 @@ class FightScene extends Phaser.Scene {
                 break;
 
             case ATTACK_TYPES.RISING:
-                // 升龙：手臂缩回准备
+                // 升龙：使用垂直手臂缩回准备
                 fighter.armImg.setScale(0.1, 1);
                 break;
 
             case ATTACK_TYPES.AIR_PUNCH:
-                // 空中出拳：手臂缩回
-                fighter.armImg.setScale(0.1, 1);
+                // 空中出拳：切换到水平出拳手臂缩回
+                fighter.armContainer.setVisible(false);
+                fighter.armPunch.setVisible(true);
+                fighter.armPunchImg.setScale(0.1, 1);
                 break;
 
             case ATTACK_TYPES.AIR_KICK:
@@ -201,9 +205,9 @@ class FightScene extends Phaser.Scene {
     _playActive(fighter, type) {
         switch (type) {
             case ATTACK_TYPES.PUNCH:
-                // 横向伸展手臂（从0到1）
+                // 横向伸展水平出拳手臂（从0到1）
                 this.tweens.add({
-                    targets: fighter.armImg,
+                    targets: fighter.armPunchImg,
                     scaleX: 1,
                     duration: GAME_CONFIG.attack.punch.activeFrames * 0.5,
                     ease: 'Power3'
@@ -239,7 +243,7 @@ class FightScene extends Phaser.Scene {
                 // 向前猛冲拳
                 fighter.body.setVelocityX(fighter.body.velocity.x + 120 * fighter.facing);
                 this.tweens.add({
-                    targets: fighter.armImg,
+                    targets: fighter.armPunchImg,
                     scaleX: 1,
                     duration: GAME_CONFIG.attack.airpunch.activeFrames * 0.45,
                     ease: 'Power3'
@@ -265,9 +269,13 @@ class FightScene extends Phaser.Scene {
             case ATTACK_TYPES.PUNCH:
             case ATTACK_TYPES.AIR_PUNCH:
                 this.tweens.add({
-                    targets: fighter.armImg,
+                    targets: fighter.armPunchImg,
                     scaleX: 1,
-                    duration: 130, ease: 'Power1'
+                    duration: 130, ease: 'Power1',
+                    onComplete: () => {
+                        fighter.armPunch.setVisible(false);
+                        fighter.armContainer.setVisible(true);
+                    }
                 });
                 break;
 

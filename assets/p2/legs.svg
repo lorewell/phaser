@@ -2,28 +2,37 @@
   <defs>
     <linearGradient id="legGrad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="rgb(100, 170, 255)"/>
-      <stop offset="100%" stop-color="rgb(20, 60, 160)"/>
+      <stop offset="50%" stop-color="rgb(45, 125, 245)"/>
+      <stop offset="100%" stop-color="rgb(25, 65, 165)"/>
     </linearGradient>
     <linearGradient id="shoeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#555"/>
+      <stop offset="0%" stop-color="#666"/>
       <stop offset="100%" stop-color="#111"/>
     </linearGradient>
   </defs>
   <!-- 左腿 -->
-  <rect x="8" y="2" width="26" height="44" rx="8" fill="url(#legGrad)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <rect x="6" y="2" width="28" height="46" rx="10" fill="url(#legGrad)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
   <!-- 右腿 -->
-  <rect x="46" y="2" width="26" height="44" rx="8" fill="url(#legGrad)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <rect x="46" y="2" width="28" height="46" rx="10" fill="url(#legGrad)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <!-- 裤子褶皱 -->
+  <path d="M10 12 Q20 16 28 12" stroke="rgb(20, 60, 160)" stroke-width="1" fill="none" opacity="0.3"/>
+  <path d="M50 12 Q60 16 68 12" stroke="rgb(20, 60, 160)" stroke-width="1" fill="none" opacity="0.3"/>
   <!-- 护膝 左 -->
-  <ellipse cx="21" cy="26" rx="10" ry="8" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <ellipse cx="20" cy="28" rx="11" ry="9" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <ellipse cx="20" cy="28" rx="6" ry="5" fill="rgb(100, 170, 255)" opacity="0.3"/>
   <!-- 护膝 右 -->
-  <ellipse cx="59" cy="26" rx="10" ry="8" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <ellipse cx="60" cy="28" rx="11" ry="9" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <ellipse cx="60" cy="28" rx="6" ry="5" fill="rgb(100, 170, 255)" opacity="0.3"/>
   <!-- 左靴子 -->
-  <rect x="6" y="46" width="30" height="20" rx="5" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
-  <ellipse cx="21" cy="66" rx="17" ry="7" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
+  <rect x="4" y="48" width="32" height="20" rx="6" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
+  <ellipse cx="20" cy="68" rx="18" ry="8" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
   <!-- 右靴子 -->
-  <rect x="44" y="46" width="30" height="20" rx="5" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
-  <ellipse cx="59" cy="66" rx="17" ry="7" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
+  <rect x="44" y="48" width="32" height="20" rx="6" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
+  <ellipse cx="60" cy="68" rx="18" ry="8" fill="url(#shoeGrad)" stroke="#111" stroke-width="1.5"/>
   <!-- 靴子高光 -->
-  <path d="M10 50 Q21 47 32 50" stroke="#888" stroke-width="1" fill="none" opacity="0.6"/>
-  <path d="M48 50 Q59 47 70 50" stroke="#888" stroke-width="1" fill="none" opacity="0.6"/>
+  <path d="M8 52 Q20 49 32 52" stroke="#888" stroke-width="1.2" fill="none" opacity="0.6"/>
+  <path d="M48 52 Q60 49 72 52" stroke="#888" stroke-width="1.2" fill="none" opacity="0.6"/>
+  <!-- 鞋底 -->
+  <path d="M4 72 Q20 76 36 72" stroke="#333" stroke-width="1.5" fill="none"/>
+  <path d="M44 72 Q60 76 76 72" stroke="#333" stroke-width="1.5" fill="none"/>
 </svg>

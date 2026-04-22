@@ -2,23 +2,32 @@
   <defs>
     <linearGradient id="torsoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="rgb(100, 170, 255)"/>
-      <stop offset="60%" stop-color="rgb(40, 120, 240)"/>
-      <stop offset="100%" stop-color="rgb(20, 60, 160)"/>
+      <stop offset="50%" stop-color="rgb(45, 125, 245)"/>
+      <stop offset="100%" stop-color="rgb(25, 65, 165)"/>
+    </linearGradient>
+    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgb(235, 190, 140)"/>
+      <stop offset="100%" stop-color="rgb(185, 135, 95)"/>
     </linearGradient>
   </defs>
   <!-- 主体 -->
-  <rect x="8" y="5" width="64" height="75" rx="10" fill="url(#torsoGrad)" stroke="rgb(20, 60, 160)" stroke-width="2"/>
+  <rect x="6" y="4" width="68" height="76" rx="12" fill="url(#torsoGrad)" stroke="rgb(20, 60, 160)" stroke-width="2"/>
+  <!-- 胸肌左 -->
+  <ellipse cx="26" cy="28" rx="14" ry="12" fill="rgb(110, 180, 255)" opacity="0.4"/>
+  <!-- 胸肌右 -->
+  <ellipse cx="54" cy="28" rx="14" ry="12" fill="rgb(110, 180, 255)" opacity="0.4"/>
+  <!-- 腹肌线条 -->
+  <line x1="40" y1="32" x2="40" y2="66" stroke="rgb(20, 60, 160)" stroke-width="1.5" opacity="0.5"/>
+  <path d="M18 40 Q40 46 62 40" stroke="rgb(20, 60, 160)" stroke-width="1.2" fill="none" opacity="0.4"/>
+  <path d="M18 52 Q40 58 62 52" stroke="rgb(20, 60, 160)" stroke-width="1.2" fill="none" opacity="0.4"/>
   <!-- 衣领V形 -->
-  <path d="M40 8 L28 28 L40 22 L52 28 Z" fill="rgb(230, 180, 130)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <path d="M40 6 L26 28 L40 22 L54 28 Z" fill="url(#skinGrad)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <!-- 锁骨 -->
+  <path d="M18 18 Q28 14 38 18" stroke="rgb(20, 60, 160)" stroke-width="1" fill="none" opacity="0.4"/>
+  <path d="M42 18 Q52 14 62 18" stroke="rgb(20, 60, 160)" stroke-width="1" fill="none" opacity="0.4"/>
   <!-- 腰带 -->
-  <rect x="8" y="68" width="64" height="12" rx="4" fill="white" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <rect x="6" y="68" width="68" height="14" rx="4" fill="white" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
   <!-- 腰带扣 -->
-  <rect x="32" y="69" width="16" height="10" rx="2" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1"/>
-  <!-- 肌肉线条 -->
-  <line x1="40" y1="28" x2="40" y2="66" stroke="rgb(20, 60, 160)" stroke-width="1.5" opacity="0.5"/>
-  <path d="M18 35 Q40 42 62 35" stroke="rgb(20, 60, 160)" stroke-width="1" fill="none" opacity="0.4"/>
-  <path d="M18 50 Q40 57 62 50" stroke="rgb(20, 60, 160)" stroke-width="1" fill="none" opacity="0.4"/>
-  <!-- 护胸高光 -->
-  <ellipse cx="28" cy="30" rx="8" ry="10" fill="rgb(100, 170, 255)" opacity="0.3"/>
-  <ellipse cx="52" cy="30" rx="8" ry="10" fill="rgb(100, 170, 255)" opacity="0.3"/>
+  <rect x="30" y="69" width="20" height="12" rx="3" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <rect x="36" y="72" width="8" height="6" rx="1" fill="white" opacity="0.8"/>
 </svg>

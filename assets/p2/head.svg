@@ -1,35 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
   <defs>
     <radialGradient id="skinGrad" cx="50%" cy="40%" r="55%">
-      <stop offset="0%" stop-color="rgb(230, 180, 130)"/>
-      <stop offset="100%" stop-color="rgb(175, 130, 90)"/>
+      <stop offset="0%" stop-color="rgb(235, 190, 140)"/>
+      <stop offset="100%" stop-color="rgb(185, 135, 95)"/>
     </radialGradient>
     <radialGradient id="hairGrad" cx="50%" cy="20%" r="60%">
       <stop offset="0%" stop-color="#444"/>
       <stop offset="100%" stop-color="#111"/>
     </radialGradient>
+    <linearGradient id="bandGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgb(50, 130, 250)"/>
+      <stop offset="50%" stop-color="rgb(40, 120, 240)"/>
+      <stop offset="100%" stop-color="rgb(25, 80, 180)"/>
+    </linearGradient>
   </defs>
-  <!-- 头发 -->
-  <ellipse cx="40" cy="28" rx="28" ry="26" fill="url(#hairGrad)" stroke="#111" stroke-width="1.5"/>
+  <!-- 后发 -->
+  <ellipse cx="40" cy="26" rx="30" ry="28" fill="url(#hairGrad)" stroke="#111" stroke-width="1.5"/>
+  <path d="M12 28 Q8 45 14 55" stroke="#111" stroke-width="2" fill="none"/>
+  <path d="M68 28 Q72 45 66 55" stroke="#111" stroke-width="2" fill="none"/>
   <!-- 脸 -->
-  <ellipse cx="40" cy="46" rx="25" ry="28" fill="url(#skinGrad)" stroke="rgb(175, 130, 90)" stroke-width="1.5"/>
+  <ellipse cx="40" cy="46" rx="26" ry="29" fill="url(#skinGrad)" stroke="rgb(170, 120, 80)" stroke-width="1.5"/>
+  <!-- 耳朵 -->
+  <ellipse cx="14" cy="46" rx="5" ry="7" fill="url(#skinGrad)" stroke="rgb(170, 120, 80)" stroke-width="1"/>
+  <ellipse cx="66" cy="46" rx="5" ry="7" fill="url(#skinGrad)" stroke="rgb(170, 120, 80)" stroke-width="1"/>
   <!-- 头带 -->
-  <rect x="13" y="30" width="54" height="10" rx="3" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
-  <!-- 眼睛左 -->
-  <ellipse cx="29" cy="46" rx="5" ry="5.5" fill="white"/>
-  <ellipse cx="29" cy="47" rx="3" ry="3.5" fill="#222"/>
-  <ellipse cx="30" cy="46" rx="1" ry="1" fill="white"/>
-  <!-- 眼睛右 -->
-  <ellipse cx="51" cy="46" rx="5" ry="5.5" fill="white"/>
-  <ellipse cx="51" cy="47" rx="3" ry="3.5" fill="#222"/>
-  <ellipse cx="52" cy="46" rx="1" ry="1" fill="white"/>
+  <rect x="12" y="30" width="56" height="11" rx="3" fill="url(#bandGrad)" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
+  <!-- 头带结 -->
+  <path d="M68 33 Q76 28 74 38 Q70 34 68 38" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1"/>
+  <path d="M68 36 Q75 42 72 45" fill="none" stroke="rgb(20, 60, 160)" stroke-width="1.5"/>
   <!-- 眉毛（愤怒） -->
-  <line x1="23" y1="38" x2="34" y2="41" stroke="#332200" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="57" y1="38" x2="46" y2="41" stroke="#332200" stroke-width="2.5" stroke-linecap="round"/>
-  <!-- 嘴 -->
-  <path d="M31 62 Q40 58 49 62" stroke="#884422" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M22 38 L35 42" stroke="#332200" stroke-width="3" stroke-linecap="round"/>
+  <path d="M58 38 L45 42" stroke="#332200" stroke-width="3" stroke-linecap="round"/>
+  <!-- 眼睛左 -->
+  <ellipse cx="29" cy="46" rx="6" ry="6.5" fill="white"/>
+  <ellipse cx="29" cy="47" rx="3.5" ry="4" fill="#222"/>
+  <ellipse cx="30" cy="46" rx="1.2" ry="1.2" fill="white"/>
+  <!-- 眼睛右 -->
+  <ellipse cx="51" cy="46" rx="6" ry="6.5" fill="white"/>
+  <ellipse cx="51" cy="47" rx="3.5" ry="4" fill="#222"/>
+  <ellipse cx="52" cy="46" rx="1.2" ry="1.2" fill="white"/>
   <!-- 鼻子 -->
-  <path d="M38 52 Q40 58 42 52" stroke="rgb(175, 130, 90)" stroke-width="1.5" fill="none"/>
-  <!-- 头带蝴蝶结尾 -->
-  <path d="M67 33 Q74 28 72 38 Q68 34 67 38" fill="rgb(40, 120, 240)" stroke="rgb(20, 60, 160)" stroke-width="1"/>
+  <path d="M38 52 Q40 58 42 52" stroke="rgb(170, 120, 80)" stroke-width="1.5" fill="none"/>
+  <!-- 嘴（坚定） -->
+  <path d="M32 63 Q40 60 48 63" stroke="#884422" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M34 64 Q40 67 46 64" stroke="#884422" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- 下巴阴影 -->
+  <path d="M28 70 Q40 76 52 70" stroke="rgb(170, 120, 80)" stroke-width="1" fill="none" opacity="0.5"/>
 </svg>

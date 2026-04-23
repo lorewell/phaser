@@ -20,7 +20,7 @@ class MenuScene extends Phaser.Scene {
     // }
 
     // 创建 DOM 元素，注意位置居中
-    const menu = this.add.dom(300, 340).createFromCache('menuHTML');
+    const menu = this.add.dom(300, 300).createFromCache('menuHTML');
 
     // 处理交互
     const pveBtn = menu.getChildByID('pve-btn');

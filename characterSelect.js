@@ -21,7 +21,7 @@ class CharacterSelectScene extends Phaser.Scene {
 
   create() {
     // 创建 DOM 元素
-    const dom = this.add.dom(300, 340).createFromCache('selectHTML');
+    const dom = this.add.dom(300, 300).createFromCache('selectHTML');
     
     // 获取 HTML 中的元素
     const title = dom.getChildByID('select-title');

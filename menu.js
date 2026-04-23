@@ -19,8 +19,9 @@ class MenuScene extends Phaser.Scene {
     //   this.add.image(300, 340, 'menu_bg');
     // }
 
-    // 创建 DOM 元素，注意位置居中
-    const menu = this.add.dom(300, 300).createFromCache('menuHTML');
+    // 创建 DOM 元素，(0,0) 为左上角与 canvas 对齐
+    const menu = this.add.dom(0, 0).createFromCache('menuHTML');
+    menu.setSize(CANVAS_W, CANVAS_H);
 
     // 处理交互
     const pveBtn = menu.getChildByID('pve-btn');

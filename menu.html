@@ -63,14 +63,15 @@
     }
 
     .menu-container {
-        width: 600px;
-        height: 680px;
+        width: 100%;
+        max-width: 600px;
+        min-height: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
         color: white;
         font-family: 'Microsoft YaHei', sans-serif;
-        padding: 60px 20px;
+        padding: clamp(20px, 5vw, 60px) clamp(10px, 3vw, 20px);
         position: relative;
         overflow: hidden;
         background: transparent;
@@ -79,17 +80,17 @@
 
     /* 标题样式 */
     .header-box {
-        border: 4px solid #000; /* 加厚黑色外边框 */
-        padding: 15px 50px;
+        border: 4px solid #000;
+        padding: clamp(10px, 2vw, 15px) clamp(20px, 5vw, 50px);
         text-align: center;
         border-radius: 4px;
-        margin-bottom: 50px;
-        background: rgba(255, 255, 255, 0.4); /* 增加背景不透明度，让文字更突出 */
-        box-shadow: 0 0 10px rgba(0,0,0,0.5); /* 添加阴影增强立体感 */
+        margin-bottom: clamp(20px, 4vw, 50px);
+        background: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
 
     h1 {
-        font-size: 36px;
+        font-size: clamp(24px, 6vw, 36px);
         margin: 0;
         letter-spacing: 4px;
         color: #fff;
@@ -98,19 +99,19 @@
              2px -2px 0 #000,
             -2px  2px 0 #000,
              2px  2px 0 #000,
-             0px  4px 4px rgba(0,0,0,0.8); /* 关键：给字体添加全方位黑色描边 */
+             0px  4px 4px rgba(0,0,0,0.8);
     }
 
     .divider {
         height: 2px;
-        background: #000; /* 分割线改为黑色 */
+        background: #000;
         margin: 8px 0;
     }
 
     .subtitle {
-        font-size: 14px;
+        font-size: clamp(11px, 2.5vw, 14px);
         margin: 0;
-        color: #fff; /* 副标题改为白色并添加描边 */
+        color: #fff;
         letter-spacing: 6px;
         font-weight: bold;
         text-shadow: 1px 1px 2px #000;
@@ -120,8 +121,9 @@
     .button-list {
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: clamp(10px, 2vw, 15px);
         width: 100%;
+        max-width: 400px;
         align-items: center;
     }
 
@@ -133,34 +135,44 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        width: 100%;
     }
 
     .menu-btn-border:hover {
-        transform: scale(1.03);
+        transform: scale(1.02);
         filter: brightness(1.1);
     }
 
+    /* 移动端触摸优化 */
+    @media (hover: none) {
+        .menu-btn-border:active {
+            transform: scale(0.98);
+            filter: brightness(0.95);
+        }
+    }
+
     .menu-btn {
-        width: 360px;
-        height: 90px;
+        width: 100%;
+        min-height: 72px;
         display: flex;
         align-items: center;
-        padding: 0 25px;
+        padding: clamp(12px, 2vw, 25px);
         border-radius: 12px;
-        border: 6px solid #333;
+        border: 4px solid #333;
         cursor: pointer;
         transition: transform 0.1s, filter 0.2s;
         text-align: left;
         position: relative;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .menu-btn .btn-icon {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 36px;
-        margin-right: 20px;
-        width: 50px;
+        font-size: clamp(28px, 5vw, 36px);
+        margin-right: clamp(10px, 2vw, 20px);
+        width: clamp(40px, 8vw, 50px);
         text-align: center;
         filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
     }
@@ -169,17 +181,18 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
+        flex: 1;
     }
 
     .btn-title {
-        font-size: 24px;
+        font-size: clamp(18px, 4vw, 24px);
         font-weight: 800;
         color: #333;
         line-height: 1.2;
     }
 
     .btn-desc {
-        font-size: 12px;
+        font-size: clamp(10px, 2vw, 12px);
         color: rgba(0, 0, 0, 0.5);
         margin-top: 2px;
         font-weight: 600;
@@ -204,12 +217,12 @@
     /* 底部栏 */
     .footer-bar {
         position: absolute;
-        bottom: 20px;
+        bottom: max(20px, env(safe-area-inset-bottom));
         width: 100%;
-        padding: 0 30px;
+        padding: 0 clamp(10px, 3vw, 30px);
         display: flex;
         justify-content: space-between;
-        font-size: 13px;
+        font-size: clamp(10px, 2vw, 13px);
         color: rgba(255, 255, 255, 0.5);
         font-weight: bold;
     }
@@ -217,5 +230,30 @@
     .system-btns {
         display: flex;
         gap: 20px;
+    }
+
+    /* 竖屏适配 */
+    @media (max-height: 600px) {
+        .header-box {
+            margin-bottom: 15px;
+            padding: 8px 20px;
+        }
+        h1 { font-size: 20px; }
+        .menu-btn { min-height: 56px; }
+    }
+
+    /* 小屏幕宽度适配 */
+    @media (max-width: 380px) {
+        .menu-btn {
+            flex-direction: column;
+            text-align: center;
+            gap: 8px;
+            min-height: 80px;
+        }
+        .menu-btn .btn-icon {
+            margin-right: 0;
+            margin-bottom: 4px;
+        }
+        .btn-content { align-items: center; }
     }
 </style>

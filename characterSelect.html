@@ -60,7 +60,8 @@
     height: 100%;
     color: white;
     font-family: 'Arial', sans-serif;
-    padding: 48px;
+    padding: clamp(16px, 4vw, 48px);
+    padding-bottom: max(clamp(16px, 4vw, 48px), env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
@@ -68,36 +69,54 @@
   h2 {
     text-align: center;
     color: #f5c518;
-    margin-bottom: 20px;
+    margin-bottom: clamp(12px, 3vw, 20px);
+    font-size: clamp(18px, 4vw, 24px);
   }
   .main-content {
     display: flex;
-    gap: 20px;
+    gap: clamp(10px, 3vw, 20px);
     flex: 1;
+    flex-direction: column;
   }
+  
+  /* 角色网格 - 移动端单列/双列自适应 */
   .char-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    width: 320px;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: clamp(8px, 2vw, 15px);
   }
+  
   .char-card {
     background: #2d2d44;
     border: 2px solid #444466;
     border-radius: 10px;
-    padding: 10px;
+    padding: clamp(8px, 2vw, 12px);
     text-align: center;
     cursor: pointer;
     transition: 0.2s;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    -webkit-tap-highlight-color: transparent;
   }
+  
+  /* 触摸反馈 */
+  @media (hover: none) {
+    .char-card:active {
+      transform: scale(0.97);
+      background: #3d3d5c;
+    }
+  }
+  
   .char-card:hover { border-color: #f5c518; background: #3d3d5c; }
   .char-card.selected { border-color: #f5c518; background: #4d4d6c; box-shadow: 0 0 10px #f5c518; }
   .char-card.disabled { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
   
   .avatar-container { 
-    width: 60px; 
-    height: 60px; 
-    margin: 0 auto 10px; 
+    width: clamp(50px, 12vw, 60px); 
+    height: clamp(50px, 12vw, 60px); 
+    margin: 0 auto clamp(6px, 1vw, 10px); 
     display: flex;
     align-items: center;
     justify-content: center;
@@ -128,31 +147,54 @@
     max-height: 100%;
     object-fit: contain;
   }
-  .name { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
-  .role { font-size: 10px; color: #aaaaaa; }
+  .name { font-weight: bold; font-size: clamp(12px, 3vw, 14px); margin-bottom: 4px; }
+  .role { font-size: clamp(9px, 2vw, 10px); color: #aaaaaa; }
 
   .detail-panel {
-    flex: 1;
     background: rgba(0,0,0,0.3);
     border-radius: 10px;
-    padding: 15px;
-    font-size: 13px;
+    padding: clamp(10px, 2vw, 15px);
+    font-size: clamp(11px, 2.5vw, 13px);
     border: 1px solid #333;
+    min-height: 80px;
   }
+  
+  /* 底部按钮 - 移动端优化 */
   .footer {
-    height: 80px;
+    padding-top: clamp(10px, 2vw, 16px);
     display: flex;
     justify-content: center;
-    gap: 50px;
+    gap: clamp(20px, 5vw, 50px);
     align-items: center;
+    flex-wrap: wrap;
   }
   .footer-btn {
-    padding: 10px 30px;
-    border-radius: 5px;
+    padding: clamp(12px, 3vw, 14px) clamp(24px, 6vw, 36px);
+    border-radius: 8px;
     border: none;
     cursor: pointer;
     font-weight: bold;
+    font-size: clamp(14px, 3vw, 16px);
+    min-width: 100px;
+    min-height: 48px;
+    -webkit-tap-highlight-color: transparent;
   }
   .start-btn { background: #f5c518; color: #1a1a2e; }
   .start-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+  .start-btn:active:not(:disabled) { background: #e0b000; }
+  
+  /* 桌面端恢复原有布局 */
+  @media (min-width: 600px) and (min-height: 500px) {
+    .main-content {
+      flex-direction: row;
+    }
+    .detail-panel {
+      flex: 1;
+    }
+    .char-grid {
+      grid-template-columns: 1fr 1fr;
+      width: 320px;
+      flex-shrink: 0;
+    }
+  }
 </style>

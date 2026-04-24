@@ -277,9 +277,13 @@ class MahjongAttackSystem {
     this.baseDamage = config?.baseDamage || 100;
     this.slotPositions = [];
     this.cardGraphics = [];
+    this.handContainer = null;  // 父容器，用于跟随攻击者
+    this.attacker = null;       // 保存攻击者引用
+    this.relativePositions = []; // 相对位置（跟随用）
   }
 
   initUI(attacker) {
+    this.attacker = attacker;
     // 根据攻击者体型调整麻将牌尺寸
     const charSize = attacker.char.size || 80;
     // 缩放比例：让 UI 总宽度与人物宽度相近
@@ -293,13 +297,41 @@ class MahjongAttackSystem {
     const spacing = MJ_CARD_W + Math.round(15 * scale);
     const totalWidth = (HAND_SIZE - 1) * spacing;
     // 水平居中对齐攻击者
-    const startX = attacker.x - totalWidth / 2;
+    const startX = -totalWidth / 2;
     // 固定在人物底下（人物下方约10px）
-    const y = attacker.y + charSize / 2 + 10;
+    const baseY = charSize / 2 + 10;
     
+    // 保存相对位置（相对于攻击者）
+    this.relativePositions = [];
     this.slotPositions = [];
     for (let i = 0; i < HAND_SIZE; i++) {
-      this.slotPositions.push({ x: startX + i * spacing, y });
+      this.relativePositions.push({ x: startX + i * spacing, y: baseY });
+      this.slotPositions.push({ x: startX + i * spacing, y: baseY });
+    }
+    
+    // 创建父容器，跟随攻击者
+    if (!this.handContainer) {
+      this.handContainer = this.scene.add.container(0, 0);
+    }
+  }
+  
+  // 每帧更新位置，跟随攻击者
+  update() {
+    if (this.attacker && this.handContainer && this.isAttacking) {
+      const attackerX = this.attacker.x;
+      const attackerY = this.attacker.y;
+      
+      // 更新父容器位置
+      this.handContainer.setPosition(attackerX, attackerY);
+      
+      // 更新各卡片的相对位置（如果有子容器）
+      for (let i = 0; i < this.cardGraphics.length; i++) {
+        const card = this.cardGraphics[i];
+        if (card && this.relativePositions[i]) {
+          const rel = this.relativePositions[i];
+          card.setPosition(rel.x, rel.y);
+        }
+      }
     }
   }
 
@@ -309,6 +341,10 @@ class MahjongAttackSystem {
 
     // 根据攻击者位置和体型初始化 UI
     this.initUI(attacker);
+    // 重置父容器位置到攻击者位置
+    if (this.handContainer) {
+      this.handContainer.setPosition(attacker.x, attacker.y);
+    }
     this.currentHand = this.deck.draw(HAND_SIZE);
     this.dora = MAHJONG_DEFS[Math.floor(Math.random() * MAHJONG_DEFS.length)];
 
@@ -344,6 +380,7 @@ class MahjongAttackSystem {
 
   createCardBack(x, y) {
     const container = this.scene.add.container(x, y);
+    container._isMahjongCard = true;
     const bg = this.scene.add.graphics();
     bg.fillStyle(0x1a237e, 1);
     bg.fillRoundedRect(-MJ_CARD_W/2, -MJ_CARD_H/2, MJ_CARD_W, MJ_CARD_H, 6);
@@ -352,6 +389,7 @@ class MahjongAttackSystem {
     bg.lineStyle(1, 0xffd700, 0.5);
     bg.strokeCircle(0, 0, 15);
     container.add(bg);
+    this.handContainer.add(container);  // 添加到父容器
     this.cardGraphics.push(container);
     return container;
   }
@@ -412,6 +450,7 @@ class MahjongAttackSystem {
       });
     }
 
+    this.handContainer.add(container);  // 添加到父容器
     this.cardGraphics.push(container);
     return container;
   }
@@ -476,9 +515,15 @@ class MahjongAttackSystem {
   async cleanupUI() {
     for (const obj of this.cardGraphics) {
       this.scene.tweens.killTweensOf(obj);
-      obj.destroy();
+    }
+    // 销毁父容器（会自动销毁所有子元素）
+    if (this.handContainer) {
+      this.handContainer.destroy();
+      this.handContainer = null;
     }
     this.cardGraphics = [];
+    this.relativePositions = [];
+    this.attacker = null;
     await new Promise(r => this.scene.time.delayedCall(300, r));
   }
 

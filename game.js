@@ -290,6 +290,9 @@ class GameScene extends Phaser.Scene {
       if (this.player2.comboTimer <= 0) this.player2.comboStacks = 0;
     }
 
+    // 蓄力计时更新（妇人科冲锋）
+    this.updateChargeTimers(dt);
+
     // 电脑AI
     this.updateAI(dt);
 
@@ -299,6 +302,11 @@ class GameScene extends Phaser.Scene {
 
     // 更新子弹
     this.updateBullets(dt);
+
+    // 更新麻将攻击UI（跟随攻击者）
+    if (this.mahjongAttackSystem) {
+      this.mahjongAttackSystem.update();
+    }
 
     // 碰撞检测
     this.checkPlayerCollision();
@@ -317,6 +325,48 @@ class GameScene extends Phaser.Scene {
     this.checkGameOver();
   }
 
+  // 蓄力计时更新
+  updateChargeTimers(dt) {
+    [this.player1, this.player2].forEach(player => {
+      if (!player.char.attack.chargeTime) return;
+      
+      // 蓄力中
+      if (player.isCharging) {
+        player.chargeTimer += dt;
+        if (player.chargeTimer >= player.char.attack.chargeTime) {
+          // 蓄力完成，开始冲刺
+          player.isCharging = false;
+          player.isDashing = true;
+          player.chargeTimer = 0;
+          // 记录冲刺起点
+          player.dashStartX = player.x;
+          player.dashStartY = player.y;
+        }
+      }
+      
+      // 冲刺中
+      if (player.isDashing) {
+        const attack = player.char.attack;
+        const dx = player.dashTargetX - player.x;
+        const dy = player.dashTargetY - player.y;
+        const remainingDist = Math.sqrt(dx * dx + dy * dy);
+        
+        // 到达目标或超过最大距离则停止冲刺
+        const maxDashDist = attack.range || 250;
+        const traveledDist = Math.sqrt(
+          Math.pow(player.x - player.dashStartX, 2) + 
+          Math.pow(player.y - player.dashStartY, 2)
+        );
+        
+        if (remainingDist < 10 || traveledDist >= maxDashDist) {
+          player.isDashing = false;
+          player.vx = 0;
+          player.vy = 0;
+        }
+      }
+    });
+  }
+
   updateAI(dt) {
     const cpu = this.player2;
     const player = this.player1;
@@ -326,13 +376,19 @@ class GameScene extends Phaser.Scene {
     const dy = player.y - cpu.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // 影刃冲锋逻辑
-    if (char.attack.type === ATTACK_TYPE.CHARGE && !cpu.isCharging && cpu.attackCooldown <= 0) {
-      if (dist > 80 && dist < char.attack.range) {
+    // 冲锋类攻击逻辑（区分蓄力型和瞬发型）
+    if (char.attack.type === ATTACK_TYPE.CHARGE && cpu.attackCooldown <= 0) {
+      // 已经在蓄力或冲刺中，不处理
+      if (cpu.isCharging || cpu.isDashing) return;
+      
+      if (dist > 60 && dist < char.attack.range) {
         cpu.isCharging = true;
-        const angle = Math.atan2(dy, dx);
-        cpu.vx = Math.cos(angle) * char.speed;
-        cpu.vy = Math.sin(angle) * char.speed;
+        cpu.chargeTimer = 0;
+        cpu.vx = 0;
+        cpu.vy = 0;
+        // 保存冲刺目标
+        cpu.dashTargetX = player.x;
+        cpu.dashTargetY = player.y;
         cpu.attackCooldown = char.attack.cooldown;
         return;
       }
@@ -363,8 +419,28 @@ class GameScene extends Phaser.Scene {
     const char = player.char;
     let speed = char.speed;
 
-    if (player.isCharging && char.attack.type === ATTACK_TYPE.CHARGE) {
-      speed *= char.attack.speedMultiplier;
+    // 蓄力状态 - 不能移动
+    if (player.isCharging) {
+      return;
+    }
+
+    // 冲刺状态 - 沿直线冲向目标
+    if (player.isDashing && player.dashTargetX !== undefined) {
+      const attack = char.attack;
+      speed *= attack.speedMultiplier || 2.5;
+      
+      const dx = player.dashTargetX - player.x;
+      const dy = player.dashTargetY - player.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist > 5) {
+        player.vx = (dx / dist) * speed;
+        player.vy = (dy / dist) * speed;
+      } else {
+        player.vx = 0;
+        player.vy = 0;
+        player.isDashing = false;
+      }
     }
 
     const vx = player.vx / char.speed * speed;
@@ -378,24 +454,21 @@ class GameScene extends Phaser.Scene {
     const top = ARENA_Y + char.size / 2;
     const bottom = ARENA_Y + ARENA_SIZE - char.size / 2;
 
+    // 碰撞边界处理
     if (player.x <= left) {
       player.x = left;
-      player.vx = Math.abs(player.vx);
-      if (player.isCharging) player.isCharging = false;
+      if (player.isDashing) { player.isDashing = false; player.vx = 0; }
     } else if (player.x >= right) {
       player.x = right;
-      player.vx = -Math.abs(player.vx);
-      if (player.isCharging) player.isCharging = false;
+      if (player.isDashing) { player.isDashing = false; player.vx = 0; }
     }
 
     if (player.y <= top) {
       player.y = top;
-      player.vy = Math.abs(player.vy);
-      if (player.isCharging) player.isCharging = false;
+      if (player.isDashing) { player.isDashing = false; player.vy = 0; }
     } else if (player.y >= bottom) {
       player.y = bottom;
-      player.vy = -Math.abs(player.vy);
-      if (player.isCharging) player.isCharging = false;
+      if (player.isDashing) { player.isDashing = false; player.vy = 0; }
     }
   }
 
@@ -437,18 +510,57 @@ class GameScene extends Phaser.Scene {
         const tmp = p1.vy; p1.vy = p2.vy; p2.vy = tmp;
       }
 
-      // 影刃冲锋撞击伤害
-      if (p1.isCharging && char1.attack.type === ATTACK_TYPE.CHARGE) {
-        this.dealDamage(p1, p2, char1.attack.damage);
-        p1.isCharging = false;
+      // 冲锋撞击伤害（区分蓄力型和冲刺型）
+      if (char1.attack.type === ATTACK_TYPE.CHARGE) {
+        // 蓄力型（妇人科）- 距离越远伤害越高
+        if (char1.attack.chargeTime) {
+          if (p1.isDashing && p1.dashStartX !== undefined) {
+            const traveledDist = Math.sqrt(
+              Math.pow(p1.x - p1.dashStartX, 2) + 
+              Math.pow(p1.y - p1.dashStartY, 2)
+            );
+            const bonus = this.calculateDistanceBonus(char1.attack, traveledDist);
+            this.dealDamage(p1, p2, char1.attack.damage + bonus);
+            p1.isDashing = false;
+          }
+        } 
+        // 瞬发型（承太郎）
+        else if (p1.isCharging) {
+          this.dealDamage(p1, p2, char1.attack.damage);
+          p1.isCharging = false;
+        }
       }
-      if (p2.isCharging && char2.attack.type === ATTACK_TYPE.CHARGE) {
-        this.dealDamage(p2, p1, char2.attack.damage);
-        p2.isCharging = false;
+      
+      if (char2.attack.type === ATTACK_TYPE.CHARGE) {
+        if (char2.attack.chargeTime) {
+          if (p2.isDashing && p2.dashStartX !== undefined) {
+            const traveledDist = Math.sqrt(
+              Math.pow(p2.x - p2.dashStartX, 2) + 
+              Math.pow(p2.y - p2.dashStartY, 2)
+            );
+            const bonus = this.calculateDistanceBonus(char2.attack, traveledDist);
+            this.dealDamage(p2, p1, char2.attack.damage + bonus);
+            p2.isDashing = false;
+          }
+        } else if (p2.isCharging) {
+          this.dealDamage(p2, p1, char2.attack.damage);
+          p2.isCharging = false;
+        }
       }
 
       this.collisionCooldown = 0.15;
     }
+  }
+
+  // 计算冲锋距离伤害加成
+  calculateDistanceBonus(attack, traveledDist) {
+    if (!attack.distanceBonus) return 0;
+    const { minBonus, maxBonus, minDistance } = attack.distanceBonus;
+    if (traveledDist < minDistance) return minBonus;
+    // 线性插值计算加成
+    const maxDist = attack.range || 250;
+    const ratio = Math.min((traveledDist - minDistance) / (maxDist - minDistance), 1);
+    return minBonus + (maxBonus - minBonus) * ratio;
   }
 
   checkAttack(attacker, target, dt) {

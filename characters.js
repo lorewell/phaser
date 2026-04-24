@@ -25,18 +25,23 @@ const CHARACTERS = {
     maxHp: 220,             // 较低血量
     speed: 330,            // 最高速度
     size: 80,             // 增大体型
-    // 进攻手段：快速连击
+    // 进攻手段：疾风冲锋
     attack: {
-      type: ATTACK_TYPE.MELEE,
-      name: '疾风连击',
-      description: '贴身快速攻击，伤害较低但频率高',
-      damage: 30,             // 单次伤害低
-      cooldown: 0.4,         // 冷却短（高频）
-      range: 60,             // 近战范围
-      // 特殊：连续命中叠加伤害
-      combo: {
-        maxStacks: 3,
-        bonusPerStack: 5,    // 每层+5伤害
+      type: ATTACK_TYPE.CHARGE,
+      name: '疾风冲锋',
+      description: '原地蓄力2秒后直线冲刺，距离越远伤害越高',
+      damage: 40,             // 基础伤害
+      cooldown: 2.5,         // 冷却时间
+      range: 250,            // 最大冲刺距离
+      // 蓄力相关
+      chargeTime: 2.0,       // 蓄力时间（秒）
+      // 冲刺相关
+      speedMultiplier: 3.0, // 冲刺速度倍率
+      // 距离伤害加成
+      distanceBonus: {
+        minBonus: 0,         // 最小距离加成
+        maxBonus: 60,        // 最大距离加成（冲刺满距离时额外伤害）
+        minDistance: 80       // 开始计算加成的最小距离
       }
     },
     // 大招：时间断裂
